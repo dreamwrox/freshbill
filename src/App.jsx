@@ -82,7 +82,7 @@ function billId(){ return "B"+Date.now().toString().slice(-5); }
 
 const GPAY_UPI   = "harjeet.pahwa-1@oksbi";
 const GPAY_NAME  = "Harjit Singh Pahwa";
-const ADMIN_WA   = "8800138095"; // Replace with your WhatsApp number
+const ADMIN_WA   = "91XXXXXXXXXX"; // Replace with your WhatsApp number
 
 function Toast({msg,type}){
   const bg = type==="error"?C.red:type==="warn"?C.gold:C.navy;
@@ -124,6 +124,11 @@ export default function App() {
   const [newUnit,      setNewUnit]     = useState("kg");
   const [newCat,       setNewCat]      = useState("veggie");
   const [showEmojiPick,setShowEmojiPick]=useState(false);
+  const [role,         setRole]        = useState(null);   // "vendor" | "customer" | null
+  const [custList,     setCustList]    = useState([]);     // customer's shopping list [{id,qty}]
+  const [custOwnName,  setCustOwnName] = useState("");     // customer's own name
+  const [custVendorWA, setCustVendorWA]= useState("");     // vendor's whatsapp number
+  const [custSearch,   setCustSearch]  = useState("");
 
   const deviceId   = getDeviceId();
   const monthKey   = MONTH_KEY();
@@ -143,6 +148,9 @@ export default function App() {
         if(d.shopName)  setShopName(d.shopName);
         if(d.trialStart)setTrialStart(d.trialStart);
         if(d.paidMonth) setPaidMonth(d.paidMonth);
+        if(d.role)      setRole(d.role);
+        if(d.custVendorWA) setCustVendorWA(d.custVendorWA);
+        if(d.custOwnName)  setCustOwnName(d.custOwnName);
       } else {
         // First time — start trial
         const ts = Date.now();
@@ -156,8 +164,8 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,trialStart,paidMonth});
-  },[items,rates,bills,shopName,trialStart,paidMonth,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,trialStart,paidMonth,role,custVendorWA,custOwnName});
+  },[items,rates,bills,shopName,trialStart,paidMonth,role,custVendorWA,custOwnName,screen]);
 
   function notify(msg,type="success"){
     setToast({msg,type});
@@ -199,6 +207,23 @@ export default function App() {
   }
   function updateBillQty(id,qty){ if(qty<=0){setBillItems(p=>p.filter(x=>x.id!==id));return;} setBillItems(p=>p.map(x=>x.id===id?{...x,qty}:x)); }
   const billTotal = billItems.reduce((s,x)=>s+x.qty*x.rate,0);
+
+  // ── CUSTOMER LIST ──
+  function custToggle(item){
+    setCustList(p=>{ const ex=p.find(x=>x.id===item.id); if(ex) return p.filter(x=>x.id!==item.id); return [...p,{...item,qty:1}]; });
+  }
+  function custSetQty(id,qty){ if(qty<=0){setCustList(p=>p.filter(x=>x.id!==id));return;} setCustList(p=>p.map(x=>x.id===id?{...x,qty:Math.round(qty*100)/100}:x)); }
+  function custSendWA(){
+    if(!custList.length){ notify("Pehle kuch items chuno!","error"); return; }
+    const num=custVendorWA.replace(/[^0-9]/g,"");
+    let m=`🛒 *Meri Sabzi List*`;
+    if(custOwnName) m+=`\n👤 ${custOwnName}`;
+    m+=`\n📅 ${todayStr()}\n\n`;
+    custList.forEach((it,i)=>{ m+=`${i+1}. ${it.emoji} ${it.name.split("/")[0].trim()} — ${it.qty} ${it.unit}\n`; });
+    m+=`\nBhaiya ye saman chahiye. Available hai? Rate aur total bata dena please 🙏`;
+    const url=`https://wa.me/${num}?text=${encodeURIComponent(m)}`;
+    window.open(url,"_blank");
+  }
 
   function generateBill(){
     if(!canUse){ setScreen("paywall"); return; }
@@ -296,10 +321,113 @@ export default function App() {
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Current Month: <b style={{color:C.navy}}>{MONTH_KEY()}</b></div>
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Your Device ID: <b style={{color:C.navy,letterSpacing:2}}>{deviceId}</b></div>
           </Card>
+          <button onClick={()=>{setRole(null);setScreen("home");}}
+            style={{width:"100%",padding:"12px 0",borderRadius:14,border:`2px solid ${C.lgreen}`,background:"white",color:C.green,fontWeight:800,fontSize:14,cursor:"pointer",marginTop:4}}>
+            🔄 Customer mode mein jao
+          </button>
         </>
       )}
     </div>
   );
+
+  // ── ROLE PICKER ──
+  if(screen!=="splash" && !role) return (
+    <div style={{minHeight:"100vh",background:`linear-gradient(160deg,${C.navy} 0%,${C.green} 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Segoe UI,sans-serif",padding:24}}>
+      {toast && <Toast {...toast}/>}
+      <div style={{fontSize:60,marginBottom:6}}>🥬</div>
+      <div style={{color:"white",fontSize:28,fontWeight:900}}>FreshBill</div>
+      <div style={{color:"#A7F3D0",fontSize:14,marginTop:6,marginBottom:38,textAlign:"center"}}>Aap kaun hain? / Who are you?</div>
+      <button onClick={()=>{setRole("vendor");setScreen("home");setTab("rates");}}
+        style={{width:"100%",maxWidth:340,background:"white",border:"none",borderRadius:20,padding:"22px 20px",marginBottom:16,cursor:"pointer",textAlign:"left",boxShadow:"0 6px 24px rgba(0,0,0,0.2)"}}>
+        <div style={{fontSize:34}}>🧺</div>
+        <div style={{fontWeight:900,fontSize:19,color:C.navy,marginTop:6}}>Main Dukaandaar hoon</div>
+        <div style={{fontSize:13,color:C.gray,marginTop:3}}>Vendor — rate set karo, bill banao, WhatsApp bhejo</div>
+      </button>
+      <button onClick={()=>{setRole("customer");setScreen("home");}}
+        style={{width:"100%",maxWidth:340,background:"white",border:"none",borderRadius:20,padding:"22px 20px",cursor:"pointer",textAlign:"left",boxShadow:"0 6px 24px rgba(0,0,0,0.2)"}}>
+        <div style={{fontSize:34}}>🛍️</div>
+        <div style={{fontWeight:900,fontSize:19,color:C.navy,marginTop:6}}>Main Grahak hoon</div>
+        <div style={{fontSize:13,color:C.gray,marginTop:3}}>Customer — sabzi list banao aur vendor ko bhejo</div>
+      </button>
+      <div style={{color:"#A7F3D0",fontSize:11,marginTop:28,opacity:0.7}}>Baad mein settings se change kar sakte ho</div>
+    </div>
+  );
+
+  // ── CUSTOMER SCREEN ──
+  if(role==="customer" && screen==="home"){
+    const fr = items.filter(i=>i.cat==="fruit");
+    const vg = items.filter(i=>i.cat==="veggie");
+    const q = custSearch.trim().toLowerCase();
+    const match = (arr)=> q ? arr.filter(i=>i.name.toLowerCase().includes(q)) : arr;
+    const Section = ({title,arr})=> match(arr).length>0 && (
+      <div style={{marginBottom:18}}>
+        <div style={{fontWeight:800,color:C.navy,fontSize:14,margin:"0 0 10px 2px"}}>{title}</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {match(arr).map(it=>{
+            const sel=custList.find(x=>x.id===it.id);
+            return (
+              <div key={it.id} onClick={()=>custToggle(it)}
+                style={{background:"white",borderRadius:14,padding:"12px",cursor:"pointer",position:"relative",boxShadow:sel?`0 0 0 2.5px ${C.lgreen}`:"0 1px 8px rgba(0,0,0,0.06)"}}>
+                {sel && <div style={{position:"absolute",top:8,right:8,background:C.lgreen,color:"white",borderRadius:99,width:20,height:20,fontSize:12,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>✓</div>}
+                <div style={{fontSize:30}}>{it.emoji}</div>
+                <div style={{fontWeight:700,fontSize:13,color:C.navy,marginTop:4}}>{it.name.split("/")[0].trim()}</div>
+                <div style={{fontSize:11,color:C.gray}}>per {it.unit}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+    return (
+      <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:custList.length?200:24}}>
+        {toast && <Toast {...toast}/>}
+        <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"18px 16px",color:"white"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontWeight:900,fontSize:20}}>🛍️ Meri Sabzi List</div>
+              <div style={{fontSize:12,opacity:0.8,marginTop:2}}>Jo chahiye chuno, vendor ko bhejo</div>
+            </div>
+            <button onClick={()=>{setRole(null);setCustList([]);setScreen("home");}}
+              style={{background:"rgba(255,255,255,0.15)",border:"none",color:"white",borderRadius:10,padding:"8px 10px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Switch</button>
+          </div>
+          <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Sabzi/fruit dhoondo..."
+            style={{width:"100%",marginTop:14,padding:"11px 14px",borderRadius:12,border:"none",fontSize:14,boxSizing:"border-box",outline:"none"}}/>
+        </div>
+        <div style={{padding:"16px 14px 0"}}>
+          <Section title="🥬 Sabziyan / Vegetables" arr={vg}/>
+          <Section title="🍎 Phal / Fruits" arr={fr}/>
+          {match(items).length===0 && <div style={{textAlign:"center",color:C.gray,padding:"40px 0"}}>Kuch nahi mila "{custSearch}"</div>}
+        </div>
+
+        {custList.length>0 && (
+          <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderRadius:"22px 22px 0 0",boxShadow:"0 -4px 24px rgba(0,0,0,0.15)",padding:"16px 14px",maxHeight:"55vh",overflowY:"auto"}}>
+            <div style={{fontWeight:800,color:C.navy,marginBottom:10}}>📝 Meri List ({custList.length})</div>
+            {custList.map(it=>(
+              <div key={it.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.lgray}`}}>
+                <div style={{fontSize:14,fontWeight:600,color:C.navy,flex:1}}>{it.emoji} {it.name.split("/")[0].trim()}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <button onClick={()=>custSetQty(it.id,it.qty-0.5)} style={{width:26,height:26,borderRadius:8,border:`1.5px solid ${C.lgray}`,background:"white",fontSize:15,cursor:"pointer",fontWeight:700}}>−</button>
+                  <input type="number" inputMode="decimal" step="0.25" min="0" value={it.qty}
+                    onChange={e=>{const v=parseFloat(e.target.value);custSetQty(it.id,isNaN(v)?0:v);}}
+                    style={{width:46,height:28,textAlign:"center",fontWeight:800,fontSize:13,border:`1.5px solid ${C.lgray}`,borderRadius:8,outline:"none",color:C.navy,padding:0}}/>
+                  <span style={{fontSize:12,color:C.gray,width:34}}>{it.unit}</span>
+                  <button onClick={()=>custSetQty(it.id,it.qty+0.5)} style={{width:26,height:26,borderRadius:8,border:`1.5px solid ${C.lgreen}`,background:"#E8F5E9",fontSize:15,cursor:"pointer",fontWeight:700,color:C.green}}>+</button>
+                </div>
+              </div>
+            ))}
+            <input value={custOwnName} onChange={e=>setCustOwnName(e.target.value)} placeholder="Aapka naam (optional)"
+              style={{width:"100%",marginTop:12,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none"}}/>
+            <input value={custVendorWA} onChange={e=>setCustVendorWA(e.target.value)} placeholder="Vendor ka WhatsApp number (91...)" type="tel"
+              style={{width:"100%",marginTop:8,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none"}}/>
+            <button onClick={custSendWA}
+              style={{width:"100%",marginTop:12,padding:"14px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:16,cursor:"pointer"}}>
+              📲 List Vendor Ko Bhejo
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // ── SPLASH ──
   if(screen==="splash") return (
