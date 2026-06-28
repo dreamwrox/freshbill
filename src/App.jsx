@@ -321,10 +321,6 @@ export default function App() {
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Current Month: <b style={{color:C.navy}}>{MONTH_KEY()}</b></div>
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Your Device ID: <b style={{color:C.navy,letterSpacing:2}}>{deviceId}</b></div>
           </Card>
-          <button onClick={()=>{setRole(null);setScreen("home");}}
-            style={{width:"100%",padding:"12px 0",borderRadius:14,border:`2px solid ${C.lgreen}`,background:"white",color:C.green,fontWeight:800,fontSize:14,cursor:"pointer",marginTop:4}}>
-            🔄 Customer mode mein jao
-          </button>
         </>
       )}
     </div>
@@ -382,13 +378,13 @@ export default function App() {
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:custList.length?200:24}}>
         {toast && <Toast {...toast}/>}
         <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"18px 16px",color:"white"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div>
-              <div style={{fontWeight:900,fontSize:20}}>🛍️ Meri Sabzi List</div>
+              <div style={{fontWeight:900,fontSize:18}}>🛍️ Meri Sabzi List</div>
               <div style={{fontSize:12,opacity:0.8,marginTop:2}}>Jo chahiye chuno, vendor ko bhejo</div>
             </div>
             <button onClick={()=>{setRole(null);setCustList([]);setScreen("home");}}
-              style={{background:"rgba(255,255,255,0.15)",border:"none",color:"white",borderRadius:10,padding:"8px 10px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Switch</button>
+              style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 12px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>↩️ Change Role</button>
           </div>
           <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Sabzi/fruit dhoondo..."
             style={{width:"100%",marginTop:14,padding:"11px 14px",borderRadius:12,border:"none",fontSize:14,boxSizing:"border-box",outline:"none"}}/>
@@ -629,6 +625,10 @@ export default function App() {
                 {trialActive?"Upgrade":"Unlock"} ₹100
               </button>
             )}
+            <button onClick={()=>{setRole(null);setScreen("home");}}
+              style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"6px 11px",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+              ↩️ Role
+            </button>
             <button onClick={()=>{setShowAdmin(true);setAdminUnlocked(false);setAdminPass("");setGeneratedCode("");setAdminDevice("");}}
               style={{background:"rgba(255,255,255,0.15)",border:"none",color:"white",borderRadius:10,padding:"6px 10px",fontSize:16,cursor:"pointer"}}
               title="Admin Panel">⚙️</button>
