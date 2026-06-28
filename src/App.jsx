@@ -108,6 +108,7 @@ export default function App() {
   const [custName,     setCustName]    = useState("");
   const [custPhone,    setCustPhone]   = useState("");
   const [previewBill,  setPreviewBill] = useState(null);
+  const [editingId,    setEditingId]   = useState(null);
   const [showAddForm,  setShowAddForm] = useState(false);
   const [trialStart,   setTrialStart]  = useState(null);
   const [paidMonth,    setPaidMonth]   = useState(null); // "YYYYMM" if paid this month
@@ -202,10 +203,30 @@ export default function App() {
   function generateBill(){
     if(!canUse){ setScreen("paywall"); return; }
     if(!billItems.length){ notify("Items add karo pehle!","error"); return; }
+    if(editingId){
+      // Updating an existing bill — keep its id & date, refresh everything else
+      const updated={id:editingId,date:previewBill?.date||todayStr(),custName:custName||"Walk-in",custPhone,shopName,items:[...billItems],total:billTotal};
+      setBills(p=>p.map(b=>b.id===editingId?updated:b));
+      setPreviewBill(updated);
+      setEditingId(null);
+      setScreen("preview");
+      notify("✅ Bill update ho gaya!");
+      return;
+    }
     const bill={id:billId(),date:todayStr(),custName:custName||"Walk-in",custPhone,shopName,items:[...billItems],total:billTotal};
     setBills(p=>[bill,...p]);
     setPreviewBill(bill);
     setScreen("preview");
+  }
+
+  // Load a saved bill back into the editor so qty / name / phone can be fixed
+  function editBill(bill){
+    setBillItems(bill.items.map(it=>({...it})));
+    setCustName(bill.custName==="Walk-in"?"":bill.custName);
+    setCustPhone(bill.custPhone||"");
+    setEditingId(bill.id);
+    setScreen("home");
+    setTab("bill");
   }
 
   function waMsg(bill){
@@ -382,7 +403,7 @@ export default function App() {
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:120}}>
         {toast && <Toast {...toast}/>}
         <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"18px 16px 22px",color:"white",display:"flex",alignItems:"center",gap:12}}>
-          <button onClick={()=>{setScreen("home");setTab("history");setBillItems([]);setCustName("");setCustPhone("");}} style={{background:"none",border:"none",color:"white",fontSize:22,cursor:"pointer"}}>←</button>
+          <button onClick={()=>{setScreen("home");setTab("history");setBillItems([]);setCustName("");setCustPhone("");setEditingId(null);}} style={{background:"none",border:"none",color:"white",fontSize:22,cursor:"pointer"}}>←</button>
           <div><div style={{fontWeight:900,fontSize:18}}>Bill Ready! 🎉</div><div style={{fontSize:12,opacity:0.75}}>{bill.id} · {bill.date}</div></div>
         </div>
 
@@ -431,11 +452,15 @@ export default function App() {
               📋 Copy
             </button>
           </div>
+          <button onClick={()=>editBill(bill)}
+            style={{width:"100%",padding:"13px 0",borderRadius:14,border:`2px solid ${C.gold}`,background:C.lgold,color:C.navy,fontWeight:800,fontSize:15,cursor:"pointer",marginBottom:10}}>
+            ✏️ Bill Edit Karo (Qty / Naam / Phone)
+          </button>
           <button onClick={()=>window.print()}
             style={{width:"100%",padding:"13px 0",borderRadius:14,border:`2px solid ${C.navy}`,background:"white",color:C.navy,fontWeight:800,fontSize:15,cursor:"pointer",marginBottom:10}}>
             🖨️ Print / PDF
           </button>
-          <button onClick={()=>{setScreen("home");setTab("bill");setBillItems([]);setCustName("");setCustPhone("");}}
+          <button onClick={()=>{setScreen("home");setTab("bill");setBillItems([]);setCustName("");setCustPhone("");setEditingId(null);}}
             style={{width:"100%",padding:"12px 0",borderRadius:14,border:"none",background:C.lgray,color:C.gray,fontWeight:700,fontSize:14,cursor:"pointer"}}>
             ← Naya Bill Banao
           </button>
@@ -623,6 +648,12 @@ export default function App() {
               <button onClick={()=>setScreen("paywall")} style={{marginTop:10,padding:"9px 20px",borderRadius:12,border:"none",background:C.red,color:"white",fontWeight:700,cursor:"pointer"}}>Unlock Karo →</button>
             </div>
           )}
+          {editingId && (
+            <div style={{background:C.lgold,border:`2px solid ${C.gold}`,borderRadius:14,padding:"12px 16px",marginBottom:14,textAlign:"center"}}>
+              <div style={{fontWeight:800,color:C.navy,fontSize:14}}>✏️ Bill {editingId} edit ho raha hai</div>
+              <div style={{fontSize:12,color:C.gray,marginTop:2}}>Qty, naam ya phone theek karke neeche "Update" dabao</div>
+            </div>
+          )}
           <Card>
             <div style={{fontWeight:700,color:C.navy,marginBottom:10}}>👤 Grahak / Customer</div>
             <input value={custName} onChange={e=>setCustName(e.target.value)} placeholder="Naam (optional)"
@@ -668,9 +699,14 @@ export default function App() {
                     <div style={{fontSize:12,color:C.gray}}>{inr(it.rate)}/{it.unit}</div>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <button onClick={()=>updateBillQty(it.id,it.qty-1)} style={{width:28,height:28,borderRadius:8,border:`1.5px solid ${C.lgray}`,background:"white",fontSize:16,cursor:"pointer",fontWeight:700}}>−</button>
-                    <span style={{fontWeight:800,minWidth:24,textAlign:"center"}}>{it.qty}</span>
-                    <button onClick={()=>updateBillQty(it.id,it.qty+1)} style={{width:28,height:28,borderRadius:8,border:`1.5px solid ${C.lgreen}`,background:"#E8F5E9",fontSize:16,cursor:"pointer",fontWeight:700,color:C.green}}>+</button>
+                    <button onClick={()=>updateBillQty(it.id,Math.round((it.qty-0.5)*100)/100)} style={{width:28,height:28,borderRadius:8,border:`1.5px solid ${C.lgray}`,background:"white",fontSize:16,cursor:"pointer",fontWeight:700}}>−</button>
+                    <input
+                      type="number" inputMode="decimal" step="0.25" min="0"
+                      value={it.qty}
+                      onChange={e=>{ const v=parseFloat(e.target.value); setBillItems(p=>p.map(x=>x.id===it.id?{...x,qty:isNaN(v)?0:v}:x)); }}
+                      onBlur={e=>{ if(!e.target.value||parseFloat(e.target.value)<=0) updateBillQty(it.id,0); }}
+                      style={{width:50,height:30,textAlign:"center",fontWeight:800,fontSize:14,border:`1.5px solid ${C.lgray}`,borderRadius:8,outline:"none",color:C.navy,padding:0}}/>
+                    <button onClick={()=>updateBillQty(it.id,Math.round((it.qty+0.5)*100)/100)} style={{width:28,height:28,borderRadius:8,border:`1.5px solid ${C.lgreen}`,background:"#E8F5E9",fontSize:16,cursor:"pointer",fontWeight:700,color:C.green}}>+</button>
                   </div>
                   <div style={{fontWeight:800,fontSize:14,color:C.navy,minWidth:52,textAlign:"right"}}>{inr(it.qty*it.rate)}</div>
                 </div>
@@ -722,7 +758,7 @@ export default function App() {
         <div style={{position:"fixed",bottom:16,left:12,right:12,zIndex:100}}>
           <button onClick={generateBill}
             style={{width:"100%",padding:"15px 20px",borderRadius:18,border:"none",background:`linear-gradient(135deg,${C.gold},#FBBF24)`,color:"white",fontWeight:900,fontSize:16,cursor:"pointer",boxShadow:"0 6px 24px rgba(245,158,11,0.5)",display:"flex",justifyContent:"space-between",alignItems:"center",boxSizing:"border-box"}}>
-            <span>🧾 Bill Banao</span>
+            <span>{editingId?"✏️ Bill Update Karo":"🧾 Bill Banao"}</span>
             <span>{inr(billTotal)} ({billItems.length} items)</span>
           </button>
         </div>
