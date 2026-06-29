@@ -842,12 +842,18 @@ export default function App() {
           <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,borderRadius:16,padding:"14px 16px",marginBottom:14,color:"white"}}>
             <div style={{fontSize:12,opacity:0.8,marginBottom:2}}>📱 Aapka Device ID</div>
             <div style={{fontWeight:900,fontSize:28,letterSpacing:4,marginBottom:10}}>{deviceId}</div>
-            <button onClick={()=>{
-              const msg=`Namaste! 🙏\n\nMain FreshBill use kar raha/rahi hoon.\n\nMera Device ID: *${deviceId}*\nDukan: *${shopName}*\n\nPlease mujhe is mahine ka unlock code bhej dena. 🙏`;
-              window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`,"_blank");
-            }} style={{width:"100%",padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
-              📲 Device ID Admin ko WhatsApp karo
-            </button>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{
+                const msg=`Namaste! 🙏\n\nMain FreshBill use kar raha/rahi hoon.\n\nMera Device ID: *${deviceId}*\nDukan: *${shopName}*\n\nPlease mujhe is mahine ka unlock code bhej dena. 🙏`;
+                window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`,"_blank");
+              }} style={{flex:2,padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:13,cursor:"pointer"}}>
+                📲 Device ID Bhejo
+              </button>
+              <button onClick={()=>setScreen("paywall")}
+                style={{flex:1,padding:"11px 0",borderRadius:12,border:"2px solid rgba(255,255,255,0.5)",background:"rgba(255,255,255,0.15)",color:"white",fontWeight:800,fontSize:13,cursor:"pointer"}}>
+                🔑 Code Daalo
+              </button>
+            </div>
           </div>
 
           <input value={rateSearch} onChange={e=>setRateSearch(e.target.value)} placeholder="🔍 Item dhoondo..."
