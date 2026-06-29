@@ -837,6 +837,19 @@ export default function App() {
       {/* ── TAB: RATES ── */}
       {tab==="rates" && (
         <div style={{padding:"12px 12px 0"}}>
+
+          {/* Device ID Card — visible on home screen, one tap to send to admin */}
+          <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,borderRadius:16,padding:"14px 16px",marginBottom:14,color:"white"}}>
+            <div style={{fontSize:12,opacity:0.8,marginBottom:2}}>📱 Aapka Device ID</div>
+            <div style={{fontWeight:900,fontSize:28,letterSpacing:4,marginBottom:10}}>{deviceId}</div>
+            <button onClick={()=>{
+              const msg=`Namaste! 🙏\n\nMain FreshBill use kar raha/rahi hoon.\n\nMera Device ID: *${deviceId}*\nDukan: *${shopName}*\n\nPlease mujhe is mahine ka unlock code bhej dena. 🙏`;
+              window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`,"_blank");
+            }} style={{width:"100%",padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
+              📲 Device ID Admin ko WhatsApp karo
+            </button>
+          </div>
+
           <input value={rateSearch} onChange={e=>setRateSearch(e.target.value)} placeholder="🔍 Item dhoondo..."
             style={{width:"100%",marginBottom:12,padding:"11px 14px",borderRadius:12,border:`1.5px solid ${C.lgray}`,fontSize:14,outline:"none",boxSizing:"border-box"}}/>
           
@@ -1040,18 +1053,6 @@ export default function App() {
       {/* ── TAB: HISTORY ── */}
       {tab==="history" && (
         <div style={{padding:"12px 12px 0"}}>
-
-          {/* Device ID Card — vendor can send to admin in one tap */}
-          <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,borderRadius:16,padding:"14px 16px",marginBottom:14,color:"white"}}>
-            <div style={{fontSize:12,opacity:0.8,marginBottom:4}}>📱 Aapka Device ID</div>
-            <div style={{fontWeight:900,fontSize:26,letterSpacing:3,marginBottom:10}}>{deviceId}</div>
-            <button onClick={()=>{
-              const msg=`Namaste! 🙏\n\nMain FreshBill use kar raha/rahi hoon.\n\nMera Device ID: *${deviceId}*\nDukan: *${shopName}*\n\nPlease mujhe is mahine ka unlock code bhej dena. 🙏`;
-              window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`,"_blank");
-            }} style={{width:"100%",padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
-              📲 Device ID Admin ko WhatsApp karo
-            </button>
-          </div>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
             {[["Total Bills",bills.length],["Kamaai",inr(bills.reduce((s,b)=>s+(b.total||0),0))]].map(([l,v])=>(
