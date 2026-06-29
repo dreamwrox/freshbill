@@ -39,9 +39,9 @@ function isValidCode(code, deviceId) {
 
 // ─── DEFAULTS ─────────────────────────────────────────────────────────────
 const DEFAULT_ITEMS = [
-  { id:"apple",      name:"Apple / Seb",           emoji:"🍎", cat:"fruit",  unit:"kg" },
+  { id:"apple",      name:"Apple / Seb",            emoji:"🍎", cat:"fruit",  unit:"kg" },
   { id:"mango",      name:"Mango / Aam",            emoji:"🥭", cat:"fruit",  unit:"kg" },
-  { id:"banana",     name:"Banana / Kela",          emoji:"🍌", cat:"fruit",  unit:"dozen" },
+  { id:"banana",     name:"Banana / Kela",          emoji:"🍌", cat:"fruit",  unit:"kg" },
   { id:"orange",     name:"Orange / Santra",        emoji:"🍊", cat:"fruit",  unit:"kg" },
   { id:"papaya",     name:"Papaya / Papita",        emoji:"🍈", cat:"fruit",  unit:"kg" },
   { id:"lichi",      name:"Lichi",                  emoji:"🍒", cat:"fruit",  unit:"kg" },
@@ -51,9 +51,16 @@ const DEFAULT_ITEMS = [
   { id:"guava",      name:"Guava / Amrood",         emoji:"🍐", cat:"fruit",  unit:"kg" },
   { id:"anar",       name:"Pomegranate / Anar",     emoji:"❤️", cat:"fruit",  unit:"piece" },
   { id:"grapes",     name:"Grapes / Angoor",        emoji:"🍇", cat:"fruit",  unit:"kg" },
+  { id:"strawberry", name:"Strawberry",             emoji:"🍓", cat:"fruit",  unit:"kg" },
+  { id:"coconut",    name:"Coconut / Nariyal",      emoji:"🥥", cat:"fruit",  unit:"piece" },
+  { id:"pineapple",  name:"Pineapple / Ananas",     emoji:"🍍", cat:"fruit",  unit:"piece" },
+  { id:"kiwi",       name:"Kiwi",                   emoji:"🥝", cat:"fruit",  unit:"kg" },
+  { id:"lime",       name:"Lime / Nimbu",           emoji:"🍋", cat:"fruit",  unit:"kg" },
+  
   { id:"tomato",     name:"Tomato / Tamatar",       emoji:"🍅", cat:"veggie", unit:"kg" },
   { id:"potato",     name:"Potato / Aalu",          emoji:"🥔", cat:"veggie", unit:"kg" },
   { id:"onion",      name:"Onion / Pyaaz",          emoji:"🧅", cat:"veggie", unit:"kg" },
+  { id:"garlic",     name:"Garlic / Lahsun",        emoji:"🧄", cat:"veggie", unit:"kg" },
   { id:"cauliflower",name:"Cauliflower / Gobhi",    emoji:"🥦", cat:"veggie", unit:"piece" },
   { id:"cucumber",   name:"Cucumber / Kheera",      emoji:"🥒", cat:"veggie", unit:"kg" },
   { id:"carrot",     name:"Carrot / Gajar",         emoji:"🥕", cat:"veggie", unit:"kg" },
@@ -63,7 +70,46 @@ const DEFAULT_ITEMS = [
   { id:"brinjal",    name:"Brinjal / Baingan",      emoji:"🍆", cat:"veggie", unit:"kg" },
   { id:"lauki",      name:"Lauki / Bottle Gourd",   emoji:"🫑", cat:"veggie", unit:"piece" },
   { id:"peas",       name:"Peas / Matar",           emoji:"🫛", cat:"veggie", unit:"kg" },
+  { id:"corn",       name:"Corn / Makai",           emoji:"🌽", cat:"veggie", unit:"piece" },
+  { id:"cabbage",    name:"Cabbage / Patta Gobhi",  emoji:"🥬", cat:"veggie", unit:"piece" },
+  { id:"radish",     name:"Radish / Mooli",         emoji:"🥒", cat:"veggie", unit:"kg" },
+  { id:"beetroot",   name:"Beetroot / Chukandar",   emoji:"🍅", cat:"veggie", unit:"kg" },
+  { id:"pumpkin",    name:"Pumpkin / Kaddu",        emoji:"🎃", cat:"veggie", unit:"piece" },
+  { id:"bellpepper", name:"Bell Pepper / Shimla",   emoji:"🫑", cat:"veggie", unit:"kg" },
+  { id:"mushroom",   name:"Mushroom / Kumbhi",      emoji:"🍄", cat:"veggie", unit:"kg" },
+  { id:"methi",      name:"Fenugreek / Methi",      emoji:"🌿", cat:"veggie", unit:"bunch" },
+  
+  { id:"bread",      name:"Bread / Eggless",        emoji:"🍞", cat:"grocery", unit:"packet" },
+  { id:"milk",       name:"Milk",                   emoji:"🥛", cat:"grocery", unit:"litre" },
+  { id:"paneer",     name:"Paneer",                 emoji:"🧀", cat:"grocery", unit:"kg" },
+  { id:"butter",     name:"Butter",                 emoji:"🧈", cat:"grocery", unit:"kg" },
+  { id:"dahi",       name:"Yogurt / Dahi",          emoji:"🥣", cat:"grocery", unit:"kg" },
+  { id:"cheese",     name:"Cheese",                 emoji:"🧀", cat:"grocery", unit:"kg" },
+  { id:"curd",       name:"Curd / Dahi",            emoji:"🥣", cat:"grocery", unit:"piece" },
+  { id:"eggs",       name:"Eggs",                   emoji:"🥚", cat:"grocery", unit:"dozen" },
+  { id:"buttermilk", name:"Buttermilk / Chaach",    emoji:"🥛", cat:"grocery", unit:"litre" },
+  { id:"ghee",       name:"Ghee / Clarified Butter",emoji:"🧈", cat:"grocery", unit:"kg" },
+  { id:"oil",        name:"Cooking Oil",            emoji:"🫒", cat:"grocery", unit:"litre" },
+  { id:"salt",       name:"Salt",                   emoji:"🧂", cat:"grocery", unit:"kg" },
+  { id:"flour",      name:"Flour / Atta",           emoji:"🌾", cat:"grocery", unit:"kg" },
+  { id:"rice",       name:"Rice / Chawal",          emoji:"🍚", cat:"grocery", unit:"kg" },
+  { id:"dal",        name:"Dal / Lentils",          emoji:"🍲", cat:"grocery", unit:"kg" },
+  { id:"sugar",      name:"Sugar",                  emoji:"🍯", cat:"grocery", unit:"kg" },
+  { id:"honey",      name:"Honey",                  emoji:"🍯", cat:"grocery", unit:"kg" },
+  { id:"jam",        name:"Jam",                    emoji:"🍓", cat:"grocery", unit:"piece" },
+  { id:"peanut",     name:"Peanut Butter",          emoji:"🥜", cat:"grocery", unit:"kg" },
+  { id:"tea",        name:"Tea Leaves",             emoji:"🍵", cat:"grocery", unit:"kg" },
+  { id:"coffee",     name:"Coffee",                 emoji:"☕", cat:"grocery", unit:"kg" },
+  { id:"spices",     name:"Spices Mix",             emoji:"🌶️", cat:"grocery", unit:"kg" },
+  { id:"ginger",     name:"Ginger / Adrak",         emoji:"🫚", cat:"grocery", unit:"kg" },
+  { id:"turmeric",   name:"Turmeric / Haldi",       emoji:"🌾", cat:"grocery", unit:"kg" },
+  { id:"nuts",       name:"Mixed Nuts",             emoji:"🥜", cat:"grocery", unit:"kg" },
+  { id:"dryfruit",   name:"Dry Fruits",             emoji:"🥭", cat:"grocery", unit:"kg" },
+  { id:"chocolate",  name:"Chocolate",              emoji:"🍫", cat:"grocery", unit:"piece" },
+  { id:"biscuit",    name:"Biscuits",               emoji:"🍪", cat:"grocery", unit:"packet" },
+  { id:"soap",       name:"Soap",                   emoji:"🧼", cat:"grocery", unit:"piece" },
 ];
+
 
 const QUICK_RATES = [10,15,20,25,30,40,50,60,70,80,100,120,140,160,180,200,250,300];
 const EMOJIS = ["🍎","🥭","🍌","🍊","🍈","🍒","🍉","🍇","🍐","❤️","🫐","🍅","🥔","🧅","🥦","🥒","🥕","🌶️","🥬","🍆","🫑","🫘","🫛","🌽","🧄"];
@@ -117,6 +163,7 @@ export default function App() {
   const [showAdmin,    setShowAdmin]   = useState(false);
   const [adminPass,    setAdminPass]   = useState("");
   const [adminUnlocked,setAdminUnlocked]=useState(false);
+  const [visitorCount, setVisitorCount]= useState(null);
   const [generatedCode,setGeneratedCode]=useState("");
   const [adminDevice,  setAdminDevice] = useState("");
   const [newName,      setNewName]     = useState("");
@@ -129,10 +176,11 @@ export default function App() {
   const [custOwnName,  setCustOwnName] = useState("");     // customer's own name
   const [custVendorWA, setCustVendorWA]= useState("");     // vendor's whatsapp number
   const [custSearch,   setCustSearch]  = useState("");
+  const [rateSearch,   setRateSearch]  = useState("");
 
   const deviceId   = getDeviceId();
   const monthKey   = MONTH_KEY();
-  const trialDays  = trialStart ? Math.max(0, 14 - Math.floor((Date.now()-trialStart)/(1000*60*60*24))) : 14;
+  const trialDays  = trialStart ? Math.max(0, 60 - Math.floor((Date.now()-trialStart)/(1000*60*60*24))) : 60;
   const trialActive= trialDays > 0;
   const isPaid     = paidMonth === monthKey;
   const canUse     = trialActive || isPaid;
@@ -142,7 +190,12 @@ export default function App() {
     (async()=>{
       const d = await load("fb-data-v2");
       if(d){
-        if(d.items)     setItems(d.items);
+        if(d.items){
+          // Merge: keep saved items, add any new DEFAULT_ITEMS not already present (e.g. groceries)
+          const savedIds = new Set(d.items.map(i=>i.id));
+          const newDefaults = DEFAULT_ITEMS.filter(i=>!savedIds.has(i.id));
+          setItems([...d.items, ...newDefaults]);
+        }
         if(d.rates)     setRates(d.rates);
         if(d.bills)     setBills(d.bills);
         if(d.shopName)  setShopName(d.shopName);
@@ -158,6 +211,23 @@ export default function App() {
         await save("fb-data-v2",{items:DEFAULT_ITEMS,rates:{},bills:[],shopName:"Mera Fruit & Sabzi Store",trialStart:ts,paidMonth:null});
       }
       setTimeout(()=>setScreen("home"),1600);
+    })();
+  },[]);
+
+  // ── VISITOR COUNTER (free, no backend — uses api.counterapi.dev) ──
+  useEffect(()=>{
+    (async()=>{
+      try{
+        // Count once per device using a "hit" — only new devices increment
+        const seen = await load("fb-visited");
+        const endpoint = seen
+          ? "https://api.counterapi.dev/v1/freshbill/visitors"          // just read
+          : "https://api.counterapi.dev/v1/freshbill/visitors/up";      // increment
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        if(data && typeof data.count==="number"){ setVisitorCount(data.count); }
+        if(!seen) await save("fb-visited", true);
+      }catch{ /* offline or blocked — silently ignore */ }
     })();
   },[]);
 
@@ -194,7 +264,7 @@ export default function App() {
     if(!newName.trim()) return;
     const id="c_"+Date.now();
     setItems(p=>[...p,{id,name:newName.trim(),emoji:newEmoji,cat:newCat,unit:newUnit}]);
-    setNewName(""); setShowAddForm(false); setShowEmojiPick(false);
+    setNewName(""); setNewEmoji("🥕"); setNewUnit("kg"); setNewCat("veggie"); setShowAddForm(false); setShowEmojiPick(false);
     notify("✅ Item add ho gaya!");
   }
 
@@ -319,8 +389,13 @@ export default function App() {
             <div style={{fontWeight:700,color:C.navy,marginBottom:8}}>📊 App Stats</div>
             <div style={{fontSize:14,color:C.gray}}>Total Bills: <b style={{color:C.navy}}>{bills.length}</b></div>
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Current Month: <b style={{color:C.navy}}>{MONTH_KEY()}</b></div>
+            <div style={{fontSize:14,color:C.gray,marginTop:4}}>Total Visitors: <b style={{color:C.green}}>{visitorCount!==null?visitorCount.toLocaleString("en-IN"):"…"}</b></div>
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Your Device ID: <b style={{color:C.navy,letterSpacing:2}}>{deviceId}</b></div>
           </Card>
+          <div style={{textAlign:"center",padding:"18px 0 8px",color:C.gray,fontSize:12}}>
+            <div style={{fontWeight:700,color:C.navy}}>FreshBill v1.0</div>
+            <div style={{marginTop:2}}>Designed by <b style={{color:C.green}}>JK Technologies</b> ™</div>
+          </div>
         </>
       )}
     </div>
@@ -346,6 +421,7 @@ export default function App() {
         <div style={{fontSize:13,color:C.gray,marginTop:3}}>Customer — sabzi list banao aur vendor ko bhejo</div>
       </button>
       <div style={{color:"#A7F3D0",fontSize:11,marginTop:28,opacity:0.7}}>Baad mein settings se change kar sakte ho</div>
+      <div style={{color:"#A7F3D0",fontSize:11,marginTop:24,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
     </div>
   );
 
@@ -353,6 +429,7 @@ export default function App() {
   if(role==="customer" && screen==="home"){
     const fr = items.filter(i=>i.cat==="fruit");
     const vg = items.filter(i=>i.cat==="veggie");
+    const gr = items.filter(i=>i.cat==="grocery");
     const q = custSearch.trim().toLowerCase();
     const match = (arr)=> q ? arr.filter(i=>i.name.toLowerCase().includes(q)) : arr;
     const Section = ({title,arr})=> match(arr).length>0 && (
@@ -386,31 +463,37 @@ export default function App() {
             <button onClick={()=>{setRole(null);setCustList([]);setScreen("home");}}
               style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 12px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>↩️ Change Role</button>
           </div>
-          <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Sabzi/fruit dhoondo..."
+          <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Sabzi/fruit/saman dhoondo..."
             style={{width:"100%",marginTop:14,padding:"11px 14px",borderRadius:12,border:"none",fontSize:14,boxSizing:"border-box",outline:"none"}}/>
         </div>
         <div style={{padding:"16px 14px 0"}}>
           <Section title="🥬 Sabziyan / Vegetables" arr={vg}/>
           <Section title="🍎 Phal / Fruits" arr={fr}/>
+          <Section title="🛒 Groceries / Saman" arr={gr}/>
           {match(items).length===0 && <div style={{textAlign:"center",color:C.gray,padding:"40px 0"}}>Kuch nahi mila "{custSearch}"</div>}
         </div>
 
         {custList.length>0 && (
           <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderRadius:"22px 22px 0 0",boxShadow:"0 -4px 24px rgba(0,0,0,0.15)",padding:"16px 14px",maxHeight:"55vh",overflowY:"auto"}}>
-            <div style={{fontWeight:800,color:C.navy,marginBottom:10}}>📝 Meri List ({custList.length})</div>
-            {custList.map(it=>(
+            <div style={{fontWeight:800,color:C.navy,marginBottom:4}}>📝 Meri List ({custList.length})</div>
+            <div style={{fontSize:11,color:C.gray,marginBottom:10}}>Quantity badlne ke liye − / + dabao ya number type karo</div>
+            {custList.map(it=>{
+              const whole = ["piece","dozen","packet"].includes(it.unit);
+              const step = whole ? 1 : 0.5;
+              return (
               <div key={it.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.lgray}`}}>
                 <div style={{fontSize:14,fontWeight:600,color:C.navy,flex:1}}>{it.emoji} {it.name.split("/")[0].trim()}</div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <button onClick={()=>custSetQty(it.id,it.qty-0.5)} style={{width:26,height:26,borderRadius:8,border:`1.5px solid ${C.lgray}`,background:"white",fontSize:15,cursor:"pointer",fontWeight:700}}>−</button>
-                  <input type="number" inputMode="decimal" step="0.25" min="0" value={it.qty}
+                  <button onClick={()=>custSetQty(it.id,it.qty-step)} style={{width:30,height:30,borderRadius:8,border:`1.5px solid ${C.lgray}`,background:"white",fontSize:17,cursor:"pointer",fontWeight:700}}>−</button>
+                  <input type="number" inputMode="decimal" step={step} min="0" value={it.qty}
                     onChange={e=>{const v=parseFloat(e.target.value);custSetQty(it.id,isNaN(v)?0:v);}}
-                    style={{width:46,height:28,textAlign:"center",fontWeight:800,fontSize:13,border:`1.5px solid ${C.lgray}`,borderRadius:8,outline:"none",color:C.navy,padding:0}}/>
-                  <span style={{fontSize:12,color:C.gray,width:34}}>{it.unit}</span>
-                  <button onClick={()=>custSetQty(it.id,it.qty+0.5)} style={{width:26,height:26,borderRadius:8,border:`1.5px solid ${C.lgreen}`,background:"#E8F5E9",fontSize:15,cursor:"pointer",fontWeight:700,color:C.green}}>+</button>
+                    style={{width:50,height:30,textAlign:"center",fontWeight:800,fontSize:14,border:`1.5px solid ${C.lgreen}`,borderRadius:8,outline:"none",color:C.navy,padding:0}}/>
+                  <span style={{fontSize:12,color:C.gray,width:40}}>{it.unit}</span>
+                  <button onClick={()=>custSetQty(it.id,it.qty+step)} style={{width:30,height:30,borderRadius:8,border:`1.5px solid ${C.lgreen}`,background:"#E8F5E9",fontSize:17,cursor:"pointer",fontWeight:700,color:C.green}}>+</button>
                 </div>
               </div>
-            ))}
+              );
+            })}
             <input value={custOwnName} onChange={e=>setCustOwnName(e.target.value)} placeholder="Aapka naam (optional)"
               style={{width:"100%",marginTop:12,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none"}}/>
             <input value={custVendorWA} onChange={e=>setCustVendorWA(e.target.value)} placeholder="Vendor ka WhatsApp number (91...)" type="tel"
@@ -432,6 +515,7 @@ export default function App() {
       <div style={{color:"white",fontSize:32,fontWeight:900,letterSpacing:-1}}>FreshBill</div>
       <div style={{color:"#A7F3D0",fontSize:14,marginTop:4}}>Sabzi • Fruit • Bill • WhatsApp</div>
       <div style={{color:"#A7F3D0",fontSize:13,marginTop:32}}>Loading...</div>
+      <div style={{position:"absolute",bottom:30,color:"#A7F3D0",fontSize:12,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
     </div>
   );
 
@@ -441,7 +525,7 @@ export default function App() {
       <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"32px 20px 36px",color:"white",textAlign:"center"}}>
         <div style={{fontSize:44}}>🔐</div>
         <div style={{fontWeight:900,fontSize:24,marginTop:8}}>Free Trial Khatam!</div>
-        <div style={{opacity:0.85,fontSize:14,marginTop:6}}>14 din poore ho gaye — ab sirf ₹100/month</div>
+        <div style={{opacity:0.85,fontSize:14,marginTop:6}}>60 din poore ho gaye — ab sirf ₹30/month</div>
       </div>
 
       <div style={{padding:16}}>
@@ -449,7 +533,7 @@ export default function App() {
         <Card style={{border:`2px solid ${C.gold}`}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
             <div style={{background:C.gold,color:"white",borderRadius:99,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:14,flexShrink:0}}>1</div>
-            <div style={{fontWeight:800,fontSize:15,color:C.navy}}>GPay pe ₹100 bhejo</div>
+            <div style={{fontWeight:800,fontSize:15,color:C.navy}}>GPay pe ₹30 bhejo</div>
           </div>
           <div style={{background:C.lgray,borderRadius:12,padding:"14px 16px",marginBottom:12}}>
             <div style={{fontSize:12,color:C.gray,marginBottom:4}}>UPI ID pe bhejo:</div>
@@ -461,7 +545,7 @@ export default function App() {
           </div>
           <button onClick={()=>window.open(`upi://pay?pa=${GPAY_UPI}&pn=${encodeURIComponent(GPAY_NAME)}&am=100&cu=INR&tn=FreshBill+${deviceId}`,"_blank")}
             style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",background:`linear-gradient(135deg,#1A73E8,#4285F4)`,color:"white",fontWeight:800,fontSize:16,cursor:"pointer"}}>
-            💳 GPay se Pay Karo ₹100
+            💳 GPay se Pay Karo ₹30
           </button>
         </Card>
 
@@ -476,7 +560,7 @@ export default function App() {
             <span style={{fontWeight:900,letterSpacing:2,fontSize:16,color:C.navy}}>{deviceId}</span>
           </div>
           <button onClick={()=>{
-            const msg=`Namaste Harjit bhai! 🙏\n\nMaine FreshBill ke liye ₹100 pay kar diya.\n\nMera Device ID: *${deviceId}*\n\nPlease mujhe is mahine ka unlock code bhej dena. Screenshot attach kar raha/rahi hoon.`;
+            const msg=`Namaste Harjit bhai! 🙏\n\nMaine FreshBill ke liye ₹30 pay kar diya.\n\nMera Device ID: *${deviceId}*\n\nPlease mujhe is mahine ka unlock code bhej dena. Screenshot attach kar raha/rahi hoon.`;
             window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`,"_blank");
           }} style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:15,cursor:"pointer"}}>
             📲 WhatsApp karo (Screenshot ke saath)
@@ -594,8 +678,9 @@ export default function App() {
   }
 
   // ── HOME ──
-  const fruits  = items.filter(i=>i.cat==="fruit");
-  const veggies = items.filter(i=>i.cat==="veggie");
+  const fruits  = items.filter(i=>i.cat==="fruit" && (rateSearch.trim()==="" || i.name.toLowerCase().includes(rateSearch.toLowerCase())));
+  const veggies = items.filter(i=>i.cat==="veggie" && (rateSearch.trim()==="" || i.name.toLowerCase().includes(rateSearch.toLowerCase())));
+  const grocery = items.filter(i=>i.cat==="grocery" && (rateSearch.trim()==="" || i.name.toLowerCase().includes(rateSearch.toLowerCase())));
   const billCount = billItems.reduce((s,x)=>s+x.qty,0);
 
   return (
@@ -609,22 +694,13 @@ export default function App() {
             <input value={shopName} onChange={e=>setShopName(e.target.value)}
               style={{background:"transparent",border:"none",color:"white",fontWeight:900,fontSize:17,outline:"none",width:"100%"}}
               placeholder="Dukan ka naam..."/>
-            <div style={{fontSize:11,opacity:0.7,marginTop:1,display:"flex",alignItems:"center",gap:8}}>
-              {isPaid
-                ? <span style={{color:"#A7F3D0"}}>✅ Premium — {MONTH_KEY()}</span>
-                : trialActive
-                  ? <span style={{color:"#FDE68A"}}>⏳ Free Trial — {trialDays} din bache</span>
-                  : <span style={{color:"#FCA5A5"}}>⚠️ Trial khatam</span>
-              }
-            </div>
+            {isPaid && (
+              <div style={{fontSize:11,opacity:0.7,marginTop:1,display:"flex",alignItems:"center",gap:8}}>
+                <span style={{color:"#A7F3D0"}}>✅ Premium — {MONTH_KEY()}</span>
+              </div>
+            )}
           </div>
           <div style={{display:"flex",gap:6}}>
-            {!isPaid && (
-              <button onClick={()=>setScreen("paywall")}
-                style={{background:C.gold,border:"none",color:"white",borderRadius:10,padding:"6px 11px",fontWeight:700,fontSize:12,cursor:"pointer"}}>
-                {trialActive?"Upgrade":"Unlock"} ₹100
-              </button>
-            )}
             <button onClick={()=>{setRole(null);setScreen("home");}}
               style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"6px 11px",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
               ↩️ Role
@@ -656,6 +732,9 @@ export default function App() {
       {/* ── TAB: RATES ── */}
       {tab==="rates" && (
         <div style={{padding:"12px 12px 0"}}>
+          <input value={rateSearch} onChange={e=>setRateSearch(e.target.value)} placeholder="🔍 Item dhoondo..."
+            style={{width:"100%",marginBottom:12,padding:"11px 14px",borderRadius:12,border:`1.5px solid ${C.lgray}`,fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+          
           <button onClick={()=>{setShowAddForm(!showAddForm);setShowEmojiPick(false);}}
             style={{width:"100%",padding:"11px 0",borderRadius:12,border:`2px dashed ${C.lgreen}`,background:showAddForm?"#E8F5E9":"transparent",color:C.green,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:14}}>
             {showAddForm?"✕ Band Karo":"➕ Naya Item Add Karo"}
@@ -695,7 +774,7 @@ export default function App() {
             ))}
           </div>
 
-          {[{label:"🍎 Fruits / Phal",list:fruits},{label:"🥦 Vegetables / Sabzi",list:veggies}].map(({label,list})=>(
+          {[{label:"🍎 Fruits / Phal",list:fruits},{label:"🥦 Vegetables / Sabzi",list:veggies},{label:"🛒 Groceries",list:grocery}].map(({label,list})=>(
             <div key={label} style={{marginBottom:18}}>
               <div style={{fontWeight:800,fontSize:15,color:C.navy,marginBottom:8}}>{label}</div>
               {list.map(item=>{
@@ -753,9 +832,10 @@ export default function App() {
               <div style={{fontWeight:700,color:C.navy,marginBottom:10}}>📢 Aaj ke Rates WhatsApp pe bhejo</div>
               <button onClick={()=>{
                 let m=`🛒 *${shopName}*\n📅 Aaj ke Rates — ${todayStr()}\n\n`;
-                const f=ratedItems.filter(i=>i.cat==="fruit"); const v=ratedItems.filter(i=>i.cat==="veggie");
+                const f=ratedItems.filter(i=>i.cat==="fruit"); const v=ratedItems.filter(i=>i.cat==="veggie"); const g=ratedItems.filter(i=>i.cat==="grocery");
                 if(f.length){m+="*🍎 Fruits / Phal:*\n";f.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
                 if(v.length){m+="*🥦 Sabzi:*\n";v.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
+                if(g.length){m+="*🛒 Groceries:*\n";g.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
                 m+="📲 _Order ke liye reply karein!_";
                 window.open(`https://wa.me/?text=${encodeURIComponent(m)}`,"_blank");
               }} style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:15,cursor:"pointer"}}>
@@ -772,7 +852,7 @@ export default function App() {
           {!canUse && (
             <div style={{background:C.lred,borderRadius:14,padding:"14px 16px",marginBottom:14,textAlign:"center"}}>
               <div style={{fontWeight:800,color:C.red,fontSize:15}}>⚠️ Trial khatam ho gaya</div>
-              <div style={{fontSize:13,color:C.red,marginTop:4}}>Bill banane ke liye ₹100/month pay karo</div>
+              <div style={{fontSize:13,color:C.red,marginTop:4}}>Bill banane ke liye ₹30/month pay karo</div>
               <button onClick={()=>setScreen("paywall")} style={{marginTop:10,padding:"9px 20px",borderRadius:12,border:"none",background:C.red,color:"white",fontWeight:700,cursor:"pointer"}}>Unlock Karo →</button>
             </div>
           )}
