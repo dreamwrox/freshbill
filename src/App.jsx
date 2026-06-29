@@ -534,6 +534,24 @@ export default function App() {
         <div style={{fontWeight:900,fontSize:19,color:C.navy,marginTop:6}}>Main Grahak hoon</div>
         <div style={{fontSize:13,color:C.gray,marginTop:3}}>Customer — sabzi list banao aur vendor ko bhejo</div>
       </button>
+
+      {/* Admin button — always visible on home screen */}
+      <button onClick={()=>{
+          setRole("vendor");
+          setShopSetup(true);
+          setShopName("JK Technologies — Admin");
+          setScreen("home");
+          setTab("rates");
+          setShowAdmin(true);
+          setAdminUnlocked(false);
+          setAdminPass("");
+          setGeneratedCode("");
+          setAdminDevice("");
+        }}
+        style={{width:"100%",maxWidth:340,marginTop:20,padding:"14px 20px",borderRadius:16,border:"2px solid rgba(255,255,255,0.4)",background:"rgba(255,255,255,0.1)",color:"white",fontWeight:800,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+        🔐 Admin Panel (Owner Only)
+      </button>
+
       <div style={{color:"#A7F3D0",fontSize:11,marginTop:24,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
     </div>
   );
