@@ -214,18 +214,19 @@ export default function App() {
     })();
   },[]);
 
-  // ── VISITOR COUNTER (free, no backend — uses api.counterapi.dev) ──
+  // ── VISITOR COUNTER (free, no backend — api.counterapi.dev v1) ──
   useEffect(()=>{
     (async()=>{
       try{
-        // Count once per device using a "hit" — only new devices increment
         const seen = await load("fb-visited");
-        const endpoint = seen
-          ? "https://api.counterapi.dev/v1/freshbill/visitors"          // just read
-          : "https://api.counterapi.dev/v1/freshbill/visitors/up";      // increment
-        const res = await fetch(endpoint);
+        // v1 REST format: https://api.counterapi.dev/v1/{namespace}/{key}/{up|}
+        const base = "https://api.counterapi.dev/v1/freshbill-jk/visitors";
+        const url = seen ? base : base+"/up";
+        const res = await fetch(url);
         const data = await res.json();
-        if(data && typeof data.count==="number"){ setVisitorCount(data.count); }
+        // v1 returns { count: N } ; some versions nest as { data:{ count:N } } or { value:N }
+        const n = (data && (data.count ?? data.value ?? (data.data && (data.data.count ?? data.data.value))));
+        if(typeof n==="number"){ setVisitorCount(n); }
         if(!seen) await save("fb-visited", true);
       }catch{ /* offline or blocked — silently ignore */ }
     })();
@@ -471,6 +472,10 @@ export default function App() {
           <Section title="🍎 Phal / Fruits" arr={fr}/>
           <Section title="🛒 Groceries / Saman" arr={gr}/>
           {match(items).length===0 && <div style={{textAlign:"center",color:C.gray,padding:"40px 0"}}>Kuch nahi mila "{custSearch}"</div>}
+          <div style={{textAlign:"center",padding:"20px 0 10px",color:C.gray,fontSize:12}}>
+            <div>👥 Total Visitors: <b style={{color:C.green}}>{visitorCount!==null?visitorCount.toLocaleString("en-IN"):"…"}</b></div>
+            <div style={{marginTop:6}}>Designed by <b style={{color:C.green}}>JK Technologies</b> ™</div>
+          </div>
         </div>
 
         {custList.length>0 && (
@@ -843,6 +848,10 @@ export default function App() {
               </button>
             </Card>
           )}
+          <div style={{textAlign:"center",padding:"18px 0 8px",color:C.gray,fontSize:12}}>
+            <div>👥 Total Visitors: <b style={{color:C.green}}>{visitorCount!==null?visitorCount.toLocaleString("en-IN"):"…"}</b></div>
+            <div style={{marginTop:6}}>Designed by <b style={{color:C.green}}>JK Technologies</b> ™</div>
+          </div>
         </div>
       )}
 
