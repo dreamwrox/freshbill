@@ -14,17 +14,18 @@ const SB_KEY = "sb_publishable_hbvCu6PRzDBeKzB2HXVtNg_oMMW3eM7";
 const sbHeaders = { "Content-Type":"application/json", "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Prefer":"resolution=merge-duplicates" };
 
 async function sbPing(deviceId, shopName, trialStart, isPaid, paidMonth) {
+  if(!shopName || shopName==="Unknown Shop" || shopName==="Mera Fruit & Sabzi Store") return;
   try {
     await fetch(`${SB_URL}/rest/v1/vendor_sessions`, {
       method: "POST",
-      headers: sbHeaders,
+      headers: { ...sbHeaders, "Prefer":"resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify({
-        device_id: deviceId,
-        last_seen: new Date().toISOString(),
-        shop_name: shopName || "Unknown Shop",
+        device_id:   deviceId,
+        last_seen:   new Date().toISOString(),
+        shop_name:   shopName,
         trial_start: trialStart,
-        is_paid: isPaid,
-        paid_month: paidMonth || null,
+        is_paid:     isPaid,
+        paid_month:  paidMonth || null,
       })
     });
   } catch {}
@@ -55,14 +56,15 @@ async function sbFetchVendors() {
 }
 
 async function sbCustomerPing(deviceId, custName, vendorWA) {
+  if(!custName || custName==="Unknown") return;
   try {
     await fetch(`${SB_URL}/rest/v1/customer_sessions`, {
       method: "POST",
-      headers: sbHeaders,
+      headers: { ...sbHeaders, "Prefer":"resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify({
         device_id: deviceId,
         last_seen: new Date().toISOString(),
-        cust_name: custName || "Unknown",
+        cust_name: custName,
         vendor_wa: vendorWA || null,
       })
     });
@@ -290,13 +292,18 @@ export default function App() {
         if(d.custVendorWA) setCustVendorWA(d.custVendorWA);
         if(d.custOwnName)  setCustOwnName(d.custOwnName);
         if(d.custSetup)    setCustSetup(d.custSetup);
-        // Ping Supabase — vendor session tracking
-        sbPing(deviceId, d.shopName||"Unknown", d.trialStart, !!d.paidMonth, d.paidMonth||null);
+        // Ping Supabase with real name from storage (only if name is set)
+        if(d.shopSetup && d.shopName && d.shopName!=="Mera Fruit & Sabzi Store"){
+          sbPing(deviceId, d.shopName, d.trialStart, !!d.paidMonth, d.paidMonth||null);
+        }
+        if(d.custSetup && d.custOwnName){
+          sbCustomerPing(deviceId, d.custOwnName, d.custVendorWA||"");
+        }
       } else {
         const ts = Date.now();
         setTrialStart(ts);
         await save("fb-data-v2",{items:DEFAULT_ITEMS,rates:{},bills:[],shopName:"Mera Fruit & Sabzi Store",trialStart:ts,paidMonth:null});
-        sbPing(deviceId, "New Vendor", ts, false, null);
+        // Don't ping yet — wait for name to be entered
       }
       setTimeout(()=>setScreen("home"),1600);
     })();
@@ -335,10 +342,14 @@ export default function App() {
     return ()=>clearTimeout(t);
   },[shopName]);
 
-  // ── PING SUPABASE when customer opens app ──
+  // ── RE-PING SUPABASE when customer name changes ──
   useEffect(()=>{
-    if(role==="customer") sbCustomerPing(deviceId, custOwnName, custVendorWA);
-  },[role]);
+    if(!custOwnName) return;
+    const t = setTimeout(()=>{
+      sbCustomerPing(deviceId, custOwnName, custVendorWA);
+    }, 1200);
+    return ()=>clearTimeout(t);
+  },[custOwnName]);
 
   // ── WELCOME MESSAGE for returning users ──
   useEffect(()=>{
