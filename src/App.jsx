@@ -254,10 +254,12 @@ export default function App() {
   const [newCat,       setNewCat]      = useState("veggie");
   const [showEmojiPick,setShowEmojiPick]=useState(false);
   const [role,         setRole]        = useState(null);   // "vendor" | "customer" | null
-  const [custList,     setCustList]    = useState([]);     // customer's shopping list [{id,qty}]
-  const [custOwnName,  setCustOwnName] = useState("");     // customer's own name
-  const [custVendorWA, setCustVendorWA]= useState("");     // vendor's whatsapp number
+  const [custList,     setCustList]    = useState([]);
+  const [custOwnName,  setCustOwnName] = useState("");
+  const [custVendorWA, setCustVendorWA]= useState("");
   const [custSearch,   setCustSearch]  = useState("");
+  const [custSetup,    setCustSetup]   = useState(false);
+  const [showWelcome,  setShowWelcome] = useState(false);
   const [rateSearch,   setRateSearch]  = useState("");
 
   const deviceId   = getDeviceId();
@@ -287,6 +289,7 @@ export default function App() {
         // Role is NOT restored — picker shows on every app open
         if(d.custVendorWA) setCustVendorWA(d.custVendorWA);
         if(d.custOwnName)  setCustOwnName(d.custOwnName);
+        if(d.custSetup)    setCustSetup(d.custSetup);
         // Ping Supabase — vendor session tracking
         sbPing(deviceId, d.shopName||"Unknown", d.trialStart, !!d.paidMonth, d.paidMonth||null);
       } else {
@@ -320,8 +323,8 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,shopSetup,trialStart,paidMonth,role,custVendorWA,custOwnName});
-  },[items,rates,bills,shopName,shopSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName});
+  },[items,rates,bills,shopName,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,screen]);
 
   // ── RE-PING SUPABASE when shop name changes ──
   useEffect(()=>{
@@ -335,6 +338,17 @@ export default function App() {
   // ── PING SUPABASE when customer opens app ──
   useEffect(()=>{
     if(role==="customer") sbCustomerPing(deviceId, custOwnName, custVendorWA);
+  },[role]);
+
+  // ── WELCOME MESSAGE for returning users ──
+  useEffect(()=>{
+    if(!role) return;
+    const isReturning = role==="vendor" ? shopSetup : custSetup;
+    const name = role==="vendor" ? shopName : custOwnName;
+    if(isReturning && name){
+      setShowWelcome(true);
+      setTimeout(()=>setShowWelcome(false), 3500);
+    }
   },[role]);
 
   function notify(msg,type="success"){
@@ -644,6 +658,39 @@ export default function App() {
     </div>
   );
 
+  // ── GRAHAK NAME SETUP (first time) ──
+  if(role==="customer" && screen==="home" && !custSetup){
+    return (
+      <div style={{minHeight:"100vh",background:`linear-gradient(160deg,${C.green} 0%,${C.navy} 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Segoe UI,sans-serif",padding:24}}>
+        {toast && <Toast {...toast}/>}
+        <div style={{fontSize:56,marginBottom:8}}>🛍️</div>
+        <div style={{color:"white",fontSize:24,fontWeight:900,marginBottom:4}}>Aapka Naam?</div>
+        <div style={{color:"#A7F3D0",fontSize:14,marginBottom:32,textAlign:"center"}}>Vendor ko pata chalega ki order kiska hai</div>
+        <div style={{width:"100%",maxWidth:340}}>
+          <input
+            value={tempShopName}
+            onChange={e=>setTempShopName(e.target.value)}
+            placeholder="Apna naam likho... (e.g. Priya, Rahul)"
+            autoFocus
+            style={{width:"100%",padding:"16px",borderRadius:14,border:"none",fontSize:16,fontWeight:600,outline:"none",boxSizing:"border-box",marginBottom:12,textAlign:"center"}}
+          />
+          <button onClick={()=>{
+            if(!tempShopName.trim()){ notify("Apna naam daalo!","error"); return; }
+            const name = tempShopName.trim();
+            setCustOwnName(name);
+            setCustSetup(true);
+            setTempShopName("");
+            sbCustomerPing(deviceId, name, custVendorWA);
+            notify(`✅ Swagat hai ${name}!`);
+          }} style={{width:"100%",padding:"15px 0",borderRadius:14,border:"none",background:tempShopName.trim()?`linear-gradient(135deg,${C.green},#25D366)`:"rgba(255,255,255,0.3)",color:"white",fontWeight:900,fontSize:16,cursor:"pointer"}}>
+            ✅ Shuru Karo
+          </button>
+        </div>
+        <div style={{color:"#A7F3D0",fontSize:11,marginTop:28,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
+      </div>
+    );
+  }
+
   // ── CUSTOMER SCREEN ──
   if(role==="customer" && screen==="home"){
     const fr = items.filter(i=>i.cat==="fruit");
@@ -673,10 +720,19 @@ export default function App() {
     return (
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:custList.length?200:24}}>
         {toast && <Toast {...toast}/>}
-        <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"18px 16px",color:"white"}}>
+
+        {/* Welcome banner for returning grahak */}
+        {showWelcome && custOwnName && (
+          <div style={{position:"fixed",top:0,left:0,right:0,zIndex:999,background:`linear-gradient(135deg,${C.green},#25D366)`,color:"white",padding:"14px 20px",textAlign:"center",boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
+            <div style={{fontSize:20}}>👋 Wapas aaye {custOwnName}!</div>
+            <div style={{fontSize:13,opacity:0.9,marginTop:2}}>Aaj kya chahiye? List banao 🛒</div>
+          </div>
+        )}
+
+        <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"18px 16px",color:"white",marginTop:showWelcome&&custOwnName?56:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div>
-              <div style={{fontWeight:900,fontSize:18}}>🛍️ Meri Sabzi List</div>
+              <div style={{fontWeight:900,fontSize:18}}>🛍️ {custOwnName ? `Namaste, ${custOwnName}!` : "Meri Sabzi List"}</div>
               <div style={{fontSize:12,opacity:0.8,marginTop:2}}>Jo chahiye chuno, vendor ko bhejo</div>
             </div>
             <button onClick={()=>{setRole(null);setCustList([]);setScreen("home");}}
@@ -959,6 +1015,14 @@ export default function App() {
   return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:130}}>
       {toast && <Toast {...toast}/>}
+
+      {/* Welcome banner for returning vendor */}
+      {showWelcome && shopName && shopName!=="JK Technologies — Admin" && (
+        <div style={{position:"fixed",top:0,left:0,right:0,zIndex:999,background:`linear-gradient(135deg,${C.navy},${C.green})`,color:"white",padding:"14px 20px",textAlign:"center",boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
+          <div style={{fontSize:20}}>👋 Wapas aaye {shopName}!</div>
+          <div style={{fontSize:13,opacity:0.9,marginTop:2}}>Aaj ke rates set karo aur bill banao 🧾</div>
+        </div>
+      )}
 
       {/* HEADER */}
       <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"14px 16px 0",color:"white",position:"sticky",top:0,zIndex:50}}>
