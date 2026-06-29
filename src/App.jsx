@@ -632,7 +632,7 @@ export default function App() {
         {toast && <Toast {...toast}/>}
         <div style={{fontSize:56,marginBottom:8}}>🏪</div>
         <div style={{color:"white",fontSize:24,fontWeight:900,marginBottom:4}}>Aapki Dukan</div>
-        <div style={{color:"#A7F3D0",fontSize:14,marginBottom:32,textAlign:"center"}}>Apni dukan ka naam daalo — yeh admin dashboard mein dikhega</div>
+        <div style={{color:"#A7F3D0",fontSize:14,marginBottom:28,textAlign:"center"}}>Apni dukan ka naam daalo — yeh admin dashboard mein dikhega</div>
         <div style={{width:"100%",maxWidth:340}}>
           <input
             value={tempShopName}
@@ -651,11 +651,26 @@ export default function App() {
               sbPing(deviceId, name, trialStart, !!paidMonth, paidMonth||null);
               notify("✅ Dukan save ho gayi!");
             }}
-            style={{width:"100%",padding:"15px 0",borderRadius:14,border:"none",background:tempShopName.trim()?"linear-gradient(135deg,#128C7E,#25D366)":"rgba(255,255,255,0.3)",color:"white",fontWeight:900,fontSize:16,cursor:"pointer"}}>
+            style={{width:"100%",padding:"15px 0",borderRadius:14,border:"none",background:tempShopName.trim()?"linear-gradient(135deg,#128C7E,#25D366)":"rgba(255,255,255,0.3)",color:"white",fontWeight:900,fontSize:16,cursor:"pointer",marginBottom:12}}>
             ✅ Shuru Karo
           </button>
+
+          {/* Admin / Owner shortcut */}
+          <div style={{textAlign:"center",color:"#A7F3D0",fontSize:12,marginBottom:10,opacity:0.7}}>— ya —</div>
+          <button
+            onClick={()=>{
+              setShopName("JK Technologies — Admin");
+              setShopSetup(true);
+              setTempShopName("");
+              setShowAdmin(true);
+              setAdminUnlocked(false);
+              setAdminPass("");
+            }}
+            style={{width:"100%",padding:"13px 0",borderRadius:14,border:"2px solid rgba(255,255,255,0.4)",background:"rgba(255,255,255,0.1)",color:"white",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+            🔐 Main App Owner hoon (Admin Panel)
+          </button>
         </div>
-        <div style={{color:"#A7F3D0",fontSize:11,marginTop:24,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
+        <div style={{color:"#A7F3D0",fontSize:11,marginTop:28,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
       </div>
     );
   }
@@ -858,8 +873,9 @@ export default function App() {
               ↩️ Role
             </button>
             <button onClick={()=>{setShowAdmin(true);setAdminUnlocked(false);setAdminPass("");setGeneratedCode("");setAdminDevice("");}}
-              style={{background:"rgba(255,255,255,0.15)",border:"none",color:"white",borderRadius:10,padding:"6px 10px",fontSize:16,cursor:"pointer"}}
-              title="Admin Panel">⚙️</button>
+              style={{background:"rgba(255,255,255,0.25)",border:"2px solid rgba(255,255,255,0.5)",color:"white",borderRadius:10,padding:"6px 12px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+              🔐 Admin
+            </button>
           </div>
         </div>
 
