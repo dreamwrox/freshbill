@@ -54,6 +54,39 @@ async function sbFetchVendors() {
   } catch { return []; }
 }
 
+async function sbCustomerPing(deviceId, custName, vendorWA) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/customer_sessions`, {
+      method: "POST",
+      headers: sbHeaders,
+      body: JSON.stringify({
+        device_id: deviceId,
+        last_seen: new Date().toISOString(),
+        cust_name: custName || "Unknown",
+        vendor_wa: vendorWA || null,
+      })
+    });
+  } catch {}
+}
+
+async function sbCustomerListSent(deviceId) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/rpc/increment_list_count`, {
+      method: "POST", headers: sbHeaders,
+      body: JSON.stringify({ p_device_id: deviceId })
+    });
+  } catch {}
+}
+
+async function sbFetchCustomers() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/customer_sessions?order=last_seen.desc&limit=100`, {
+      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
+    });
+    return await res.json();
+  } catch { return []; }
+}
+
 // ─── CODE SYSTEM ──────────────────────────────────────────────────────────
 // Device fingerprint (stable per browser session)
 function getDeviceId() {
@@ -192,6 +225,9 @@ export default function App() {
   const [activeItem,   setActiveItem]  = useState(null);
   const [vendorList,   setVendorList]  = useState([]);
   const [vendorLoading,setVendorLoading]=useState(false);
+  const [customerList, setCustomerList]= useState([]);
+  const [custLoading,  setCustLoading] = useState(false);
+  const [dashTab,      setDashTab]     = useState("vendors"); // "vendors" | "customers"
   const [tempShopName, setTempShopName]= useState("");
   const [customRate,   setCustomRate]  = useState("");
   const [toast,        setToast]       = useState(null);
@@ -292,9 +328,14 @@ export default function App() {
     if(!trialStart || !shopName || shopName==="Mera Fruit & Sabzi Store") return;
     const t = setTimeout(()=>{
       sbPing(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null);
-    }, 1200); // debounce — wait for typing to stop
+    }, 1200);
     return ()=>clearTimeout(t);
   },[shopName]);
+
+  // ── PING SUPABASE when customer opens app ──
+  useEffect(()=>{
+    if(role==="customer") sbCustomerPing(deviceId, custOwnName, custVendorWA);
+  },[role]);
 
   function notify(msg,type="success"){
     setToast({msg,type});
@@ -352,6 +393,9 @@ export default function App() {
     m+=`\nBhaiya ye saman chahiye. Available hai? Rate aur total bata dena please 🙏`;
     const url=`https://wa.me/${num}?text=${encodeURIComponent(m)}`;
     window.open(url,"_blank");
+    // Track list sent in Supabase
+    sbCustomerPing(deviceId, custOwnName, custVendorWA);
+    sbCustomerListSent(deviceId);
   }
 
   function generateBill(){
@@ -455,56 +499,100 @@ export default function App() {
 
           {/* ── LIVE VENDOR DASHBOARD ── */}
           <Card>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <div style={{fontWeight:700,color:C.navy}}>🏪 Live Vendor Dashboard</div>
+            {/* Tab switcher */}
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <button onClick={()=>setDashTab("vendors")}
+                style={{flex:1,padding:"8px 0",borderRadius:10,border:"none",background:dashTab==="vendors"?C.navy:"#E8F5E9",color:dashTab==="vendors"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                🏪 Vendors ({vendorList.length})
+              </button>
+              <button onClick={()=>setDashTab("customers")}
+                style={{flex:1,padding:"8px 0",borderRadius:10,border:"none",background:dashTab==="customers"?C.green:"#E8F5E9",color:dashTab==="customers"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                🛍️ Grahak ({customerList.length})
+              </button>
               <button onClick={async()=>{
-                setVendorLoading(true);
-                const data = await sbFetchVendors();
-                setVendorList(Array.isArray(data)?data:[]);
-                setVendorLoading(false);
-              }} style={{background:C.green,border:"none",color:"white",borderRadius:8,padding:"6px 12px",fontWeight:700,fontSize:12,cursor:"pointer"}}>
-                {vendorLoading?"Loading…":"🔄 Refresh"}
+                setVendorLoading(true); setCustLoading(true);
+                const [vd, cd] = await Promise.all([sbFetchVendors(), sbFetchCustomers()]);
+                setVendorList(Array.isArray(vd)?vd:[]);
+                setCustomerList(Array.isArray(cd)?cd:[]);
+                setVendorLoading(false); setCustLoading(false);
+              }} style={{background:C.green,border:"none",color:"white",borderRadius:10,padding:"8px 12px",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                {vendorLoading||custLoading?"…":"🔄"}
               </button>
             </div>
 
-            {vendorList.length===0 && !vendorLoading && (
-              <div style={{textAlign:"center",color:C.gray,padding:"16px 0",fontSize:13}}>
-                Refresh dabao — sab vendors ki list aayegi
-              </div>
-            )}
-
-            {vendorList.map((v,i)=>{
-              const lastSeen = new Date(v.last_seen);
-              const now = new Date();
-              const diffH = Math.floor((now-lastSeen)/1000/60/60);
-              const diffD = Math.floor(diffH/24);
-              const when = diffH<1?"Just now" : diffH<24?`${diffH}h ago` : `${diffD}d ago`;
-              const isActive = diffH < 48;
-              return (
-                <div key={v.device_id} style={{borderBottom:`1px solid ${C.lgray}`,padding:"10px 0",display:"flex",flexDirection:"column",gap:3}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div style={{fontWeight:700,fontSize:13,color:C.navy}}>{v.shop_name||"Unknown Shop"}</div>
-                    <div style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:isActive?"#E8F5E9":"#FEE2E2",color:isActive?C.green:"#DC2626"}}>
-                      {isActive?"🟢 Active":"🔴 Inactive"}
+            {/* VENDORS TAB */}
+            {dashTab==="vendors" && (<>
+              {vendorList.length===0 && !vendorLoading && (
+                <div style={{textAlign:"center",color:C.gray,padding:"16px 0",fontSize:13}}>
+                  Refresh dabao — sab vendors ki list aayegi
+                </div>
+              )}
+              {vendorList.map((v)=>{
+                const diffH = Math.floor((new Date()-new Date(v.last_seen))/3600000);
+                const when = diffH<1?"Just now":diffH<24?`${diffH}h ago`:`${Math.floor(diffH/24)}d ago`;
+                const isActive = diffH < 48;
+                return (
+                  <div key={v.device_id} style={{borderBottom:`1px solid ${C.lgray}`,padding:"10px 0"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontWeight:700,fontSize:13,color:C.navy}}>{v.shop_name||"Unknown Shop"}</div>
+                      <div style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:isActive?"#E8F5E9":"#FEE2E2",color:isActive?C.green:"#DC2626"}}>
+                        {isActive?"🟢 Active":"🔴 Inactive"}
+                      </div>
+                    </div>
+                    <div style={{fontSize:11,color:C.gray,display:"flex",gap:10,flexWrap:"wrap",marginTop:3}}>
+                      <span>📱 {v.device_id}</span>
+                      <span>🧾 {v.bill_count||0} bills</span>
+                      <span>⏰ {when}</span>
+                      <span>{v.is_paid?"💚 Paid":"🔓 Trial"}</span>
                     </div>
                   </div>
-                  <div style={{fontSize:11,color:C.gray,display:"flex",gap:12,flexWrap:"wrap"}}>
-                    <span>📱 {v.device_id}</span>
-                    <span>🧾 {v.bill_count||0} bills</span>
-                    <span>⏰ {when}</span>
-                    <span>{v.is_paid?"💚 Paid":"🔓 Trial"}</span>
-                  </div>
+                );
+              })}
+              {vendorList.length>0 && (
+                <div style={{marginTop:10,padding:"8px",background:C.lgray,borderRadius:8,fontSize:12,color:C.gray,textAlign:"center"}}>
+                  Total: <b style={{color:C.navy}}>{vendorList.length}</b> &nbsp;|&nbsp;
+                  Active: <b style={{color:C.green}}>{vendorList.filter(v=>new Date()-new Date(v.last_seen)<48*3600000).length}</b> &nbsp;|&nbsp;
+                  Paid: <b style={{color:C.gold}}>{vendorList.filter(v=>v.is_paid).length}</b>
                 </div>
-              );
-            })}
+              )}
+            </>)}
 
-            {vendorList.length>0 && (
-              <div style={{marginTop:10,padding:"8px",background:C.lgray,borderRadius:8,fontSize:12,color:C.gray,textAlign:"center"}}>
-                Total vendors: <b style={{color:C.navy}}>{vendorList.length}</b> &nbsp;|&nbsp;
-                Active (48h): <b style={{color:C.green}}>{vendorList.filter(v=>new Date()-new Date(v.last_seen)<48*3600000).length}</b> &nbsp;|&nbsp;
-                Paid: <b style={{color:C.gold}}>{vendorList.filter(v=>v.is_paid).length}</b>
-              </div>
-            )}
+            {/* CUSTOMERS TAB */}
+            {dashTab==="customers" && (<>
+              {customerList.length===0 && !custLoading && (
+                <div style={{textAlign:"center",color:C.gray,padding:"16px 0",fontSize:13}}>
+                  Refresh dabao — sab grahak ki list aayegi
+                </div>
+              )}
+              {customerList.map((c)=>{
+                const diffH = Math.floor((new Date()-new Date(c.last_seen))/3600000);
+                const when = diffH<1?"Just now":diffH<24?`${diffH}h ago`:`${Math.floor(diffH/24)}d ago`;
+                const isActive = diffH < 48;
+                return (
+                  <div key={c.device_id} style={{borderBottom:`1px solid ${C.lgray}`,padding:"10px 0"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontWeight:700,fontSize:13,color:C.navy}}>{c.cust_name||"Unknown Customer"}</div>
+                      <div style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:isActive?"#E8F5E9":"#FEE2E2",color:isActive?C.green:"#DC2626"}}>
+                        {isActive?"🟢 Active":"🔴 Inactive"}
+                      </div>
+                    </div>
+                    <div style={{fontSize:11,color:C.gray,display:"flex",gap:10,flexWrap:"wrap",marginTop:3}}>
+                      <span>📱 {c.device_id}</span>
+                      <span>🛒 {c.list_count||0} lists sent</span>
+                      <span>⏰ {when}</span>
+                      {c.vendor_wa && <span>📞 {c.vendor_wa}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+              {customerList.length>0 && (
+                <div style={{marginTop:10,padding:"8px",background:C.lgray,borderRadius:8,fontSize:12,color:C.gray,textAlign:"center"}}>
+                  Total grahak: <b style={{color:C.navy}}>{customerList.length}</b> &nbsp;|&nbsp;
+                  Active: <b style={{color:C.green}}>{customerList.filter(c=>new Date()-new Date(c.last_seen)<48*3600000).length}</b> &nbsp;|&nbsp;
+                  Lists sent: <b style={{color:C.lgreen}}>{customerList.reduce((s,c)=>s+(c.list_count||0),0)}</b>
+                </div>
+              )}
+            </>)}
           </Card>
           <div style={{textAlign:"center",padding:"18px 0 8px",color:C.gray,fontSize:12}}>
             <div style={{fontWeight:700,color:C.navy}}>FreshBill v1.0</div>
