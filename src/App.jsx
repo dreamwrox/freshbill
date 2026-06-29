@@ -201,7 +201,7 @@ export default function App() {
         if(d.shopName)  setShopName(d.shopName);
         if(d.trialStart)setTrialStart(d.trialStart);
         if(d.paidMonth) setPaidMonth(d.paidMonth);
-        if(d.role)      setRole(d.role);
+        // Role is NOT restored — picker shows on every app open
         if(d.custVendorWA) setCustVendorWA(d.custVendorWA);
         if(d.custOwnName)  setCustOwnName(d.custOwnName);
       } else {
@@ -421,7 +421,7 @@ export default function App() {
         <div style={{fontWeight:900,fontSize:19,color:C.navy,marginTop:6}}>Main Grahak hoon</div>
         <div style={{fontSize:13,color:C.gray,marginTop:3}}>Customer — sabzi list banao aur vendor ko bhejo</div>
       </button>
-      <div style={{color:"#A7F3D0",fontSize:11,marginTop:28,opacity:0.7}}>Baad mein settings se change kar sakte ho</div>
+      <div style={{color:"#A7F3D0",fontSize:11,marginTop:28,opacity:0.7}}>Har baar app khulne par yeh screen aayegi</div>
       <div style={{color:"#A7F3D0",fontSize:11,marginTop:24,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
     </div>
   );
