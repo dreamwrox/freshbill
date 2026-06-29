@@ -170,7 +170,7 @@ function billId(){ return "B"+Date.now().toString().slice(-5); }
 
 const GPAY_UPI   = "harjeet.pahwa-1@oksbi";
 const GPAY_NAME  = "Harjit Singh Pahwa";
-const ADMIN_WA   = "91XXXXXXXXXX"; // Replace with your WhatsApp number
+const ADMIN_WA   = "918800138095";
 
 function Toast({msg,type}){
   const bg = type==="error"?C.red:type==="warn"?C.gold:C.navy;
@@ -426,7 +426,7 @@ export default function App() {
               <div style={{fontSize:11,color:C.gray,textAlign:"center",marginBottom:12}}>Yeh code sirf {adminDevice} device pe aur sirf is mahine kaam karega</div>
               <button onClick={()=>{
                 const msg = `🔑 *FreshBill Unlock Code*\n\nNamaste! Aapka is mahine ka unlock code:\n\n*${generatedCode}*\n\nApp mein "Enter Code" pe tap karke yeh code daalo.\n⚠️ Yeh code sirf aapke device pe kaam karega — kisi aur ko mat dena!\n\nShukriya 🙏\n— Harjit Bhai`;
-                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank");
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`,"_blank");
               }} style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:15,cursor:"pointer"}}>
                 📲 WhatsApp pe Bhejo
               </button>
@@ -942,7 +942,7 @@ export default function App() {
                 if(v.length){m+="*🥦 Sabzi:*\n";v.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
                 if(g.length){m+="*🛒 Groceries:*\n";g.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
                 m+="📲 _Order ke liye reply karein!_";
-                window.open(`https://wa.me/?text=${encodeURIComponent(m)}`,"_blank");
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(m)}`,"_blank");
               }} style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:15,cursor:"pointer"}}>
                 📲 Rates Bhejo ({ratedItems.length} items)
               </button>
