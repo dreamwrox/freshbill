@@ -1,15 +1,57 @@
 import { useState, useEffect } from "react";
 
 // ─── STORAGE ───────────────────────────────────────────────────────────────
-// Uses localStorage on real devices (phone/Vercel). Persists across app restarts.
 async function load(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch { return null; }
 }
 async function save(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+// ─── SUPABASE TRACKING ────────────────────────────────────────────────────
+const SB_URL = "https://suwltzucwfknvljiftcd.supabase.co";
+const SB_KEY = "sb_publishable_hbvCu6PRzDBeKzB2HXVtNg_oMMW3eM7";
+const sbHeaders = { "Content-Type":"application/json", "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Prefer":"resolution=merge-duplicates" };
+
+async function sbPing(deviceId, shopName, trialStart, isPaid, paidMonth) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/vendor_sessions`, {
+      method: "POST",
+      headers: sbHeaders,
+      body: JSON.stringify({
+        device_id: deviceId,
+        last_seen: new Date().toISOString(),
+        shop_name: shopName || "Unknown Shop",
+        trial_start: trialStart,
+        is_paid: isPaid,
+        paid_month: paidMonth || null,
+      })
+    });
+  } catch {}
+}
+
+async function sbBillTrack(deviceId, total) {
+  try {
+    // Increment bill count on vendor session
+    await fetch(`${SB_URL}/rest/v1/rpc/increment_bill_count`, {
+      method: "POST", headers: sbHeaders,
+      body: JSON.stringify({ p_device_id: deviceId })
+    });
+    // Log individual bill event
+    await fetch(`${SB_URL}/rest/v1/bill_events`, {
+      method: "POST", headers: { ...sbHeaders, "Prefer":"return=minimal" },
+      body: JSON.stringify({ device_id: deviceId, bill_total: total })
+    });
+  } catch {}
+}
+
+async function sbFetchVendors() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/vendor_sessions?order=last_seen.desc&limit=100`, {
+      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
+    });
+    return await res.json();
+  } catch { return []; }
 }
 
 // ─── CODE SYSTEM ──────────────────────────────────────────────────────────
@@ -148,6 +190,8 @@ export default function App() {
   const [bills,        setBills]       = useState([]);
   const [shopName,     setShopName]    = useState("Mera Fruit & Sabzi Store");
   const [activeItem,   setActiveItem]  = useState(null);
+  const [vendorList,   setVendorList]  = useState([]);
+  const [vendorLoading,setVendorLoading]=useState(false);
   const [customRate,   setCustomRate]  = useState("");
   const [toast,        setToast]       = useState(null);
   const [billItems,    setBillItems]   = useState([]);
@@ -204,11 +248,13 @@ export default function App() {
         // Role is NOT restored — picker shows on every app open
         if(d.custVendorWA) setCustVendorWA(d.custVendorWA);
         if(d.custOwnName)  setCustOwnName(d.custOwnName);
+        // Ping Supabase — vendor session tracking
+        sbPing(deviceId, d.shopName||"Unknown", d.trialStart, !!d.paidMonth, d.paidMonth||null);
       } else {
-        // First time — start trial
         const ts = Date.now();
         setTrialStart(ts);
         await save("fb-data-v2",{items:DEFAULT_ITEMS,rates:{},bills:[],shopName:"Mera Fruit & Sabzi Store",trialStart:ts,paidMonth:null});
+        sbPing(deviceId, "New Vendor", ts, false, null);
       }
       setTimeout(()=>setScreen("home"),1600);
     })();
@@ -313,6 +359,7 @@ export default function App() {
     setBills(p=>[bill,...p]);
     setPreviewBill(bill);
     setScreen("preview");
+    sbBillTrack(deviceId, billTotal); // ← track bill in Supabase
   }
 
   // Load a saved bill back into the editor so qty / name / phone can be fixed
@@ -388,10 +435,64 @@ export default function App() {
 
           <Card>
             <div style={{fontWeight:700,color:C.navy,marginBottom:8}}>📊 App Stats</div>
-            <div style={{fontSize:14,color:C.gray}}>Total Bills: <b style={{color:C.navy}}>{bills.length}</b></div>
+            <div style={{fontSize:14,color:C.gray}}>Total Bills (this device): <b style={{color:C.navy}}>{bills.length}</b></div>
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Current Month: <b style={{color:C.navy}}>{MONTH_KEY()}</b></div>
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Total Visitors: <b style={{color:C.green}}>{visitorCount!==null?visitorCount.toLocaleString("en-IN"):"…"}</b></div>
             <div style={{fontSize:14,color:C.gray,marginTop:4}}>Your Device ID: <b style={{color:C.navy,letterSpacing:2}}>{deviceId}</b></div>
+          </Card>
+
+          {/* ── LIVE VENDOR DASHBOARD ── */}
+          <Card>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div style={{fontWeight:700,color:C.navy}}>🏪 Live Vendor Dashboard</div>
+              <button onClick={async()=>{
+                setVendorLoading(true);
+                const data = await sbFetchVendors();
+                setVendorList(Array.isArray(data)?data:[]);
+                setVendorLoading(false);
+              }} style={{background:C.green,border:"none",color:"white",borderRadius:8,padding:"6px 12px",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                {vendorLoading?"Loading…":"🔄 Refresh"}
+              </button>
+            </div>
+
+            {vendorList.length===0 && !vendorLoading && (
+              <div style={{textAlign:"center",color:C.gray,padding:"16px 0",fontSize:13}}>
+                Refresh dabao — sab vendors ki list aayegi
+              </div>
+            )}
+
+            {vendorList.map((v,i)=>{
+              const lastSeen = new Date(v.last_seen);
+              const now = new Date();
+              const diffH = Math.floor((now-lastSeen)/1000/60/60);
+              const diffD = Math.floor(diffH/24);
+              const when = diffH<1?"Just now" : diffH<24?`${diffH}h ago` : `${diffD}d ago`;
+              const isActive = diffH < 48;
+              return (
+                <div key={v.device_id} style={{borderBottom:`1px solid ${C.lgray}`,padding:"10px 0",display:"flex",flexDirection:"column",gap:3}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{fontWeight:700,fontSize:13,color:C.navy}}>{v.shop_name||"Unknown Shop"}</div>
+                    <div style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:isActive?"#E8F5E9":"#FEE2E2",color:isActive?C.green:"#DC2626"}}>
+                      {isActive?"🟢 Active":"🔴 Inactive"}
+                    </div>
+                  </div>
+                  <div style={{fontSize:11,color:C.gray,display:"flex",gap:12,flexWrap:"wrap"}}>
+                    <span>📱 {v.device_id}</span>
+                    <span>🧾 {v.bill_count||0} bills</span>
+                    <span>⏰ {when}</span>
+                    <span>{v.is_paid?"💚 Paid":"🔓 Trial"}</span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {vendorList.length>0 && (
+              <div style={{marginTop:10,padding:"8px",background:C.lgray,borderRadius:8,fontSize:12,color:C.gray,textAlign:"center"}}>
+                Total vendors: <b style={{color:C.navy}}>{vendorList.length}</b> &nbsp;|&nbsp;
+                Active (48h): <b style={{color:C.green}}>{vendorList.filter(v=>new Date()-new Date(v.last_seen)<48*3600000).length}</b> &nbsp;|&nbsp;
+                Paid: <b style={{color:C.gold}}>{vendorList.filter(v=>v.is_paid).length}</b>
+              </div>
+            )}
           </Card>
           <div style={{textAlign:"center",padding:"18px 0 8px",color:C.gray,fontSize:12}}>
             <div style={{fontWeight:700,color:C.navy}}>FreshBill v1.0</div>
