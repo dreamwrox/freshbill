@@ -205,6 +205,7 @@ export default function App() {
   const [codeInput,    setCodeInput]   = useState("");
   const [codeError,    setCodeError]   = useState("");
   const [showAdmin,    setShowAdmin]   = useState(false);
+  const [shopSetup,    setShopSetup]   = useState(false); // true = vendor has set their name
   const [adminPass,    setAdminPass]   = useState("");
   const [adminUnlocked,setAdminUnlocked]=useState(false);
   const [visitorCount, setVisitorCount]= useState(null);
@@ -243,6 +244,7 @@ export default function App() {
         if(d.rates)     setRates(d.rates);
         if(d.bills)     setBills(d.bills);
         if(d.shopName)  setShopName(d.shopName);
+        if(d.shopSetup) setShopSetup(d.shopSetup);
         if(d.trialStart)setTrialStart(d.trialStart);
         if(d.paidMonth) setPaidMonth(d.paidMonth);
         // Role is NOT restored — picker shows on every app open
@@ -281,8 +283,17 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,trialStart,paidMonth,role,custVendorWA,custOwnName});
-  },[items,rates,bills,shopName,trialStart,paidMonth,role,custVendorWA,custOwnName,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,shopSetup,trialStart,paidMonth,role,custVendorWA,custOwnName});
+  },[items,rates,bills,shopName,shopSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,screen]);
+
+  // ── RE-PING SUPABASE when shop name changes ──
+  useEffect(()=>{
+    if(!trialStart || !shopName || shopName==="Mera Fruit & Sabzi Store") return;
+    const t = setTimeout(()=>{
+      sbPing(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null);
+    }, 1200); // debounce — wait for typing to stop
+    return ()=>clearTimeout(t);
+  },[shopName]);
 
   function notify(msg,type="success"){
     setToast({msg,type});
@@ -609,6 +620,41 @@ export default function App() {
             </button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // ── SHOP NAME SETUP (first time vendor opens app) ──
+  if(role==="vendor" && screen==="home" && !shopSetup){
+    const [tempName, setTempName] = useState("");
+    return (
+      <div style={{minHeight:"100vh",background:`linear-gradient(160deg,${C.navy} 0%,${C.green} 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Segoe UI,sans-serif",padding:24}}>
+        {toast && <Toast {...toast}/>}
+        <div style={{fontSize:56,marginBottom:8}}>🏪</div>
+        <div style={{color:"white",fontSize:24,fontWeight:900,marginBottom:4}}>Aapki Dukan</div>
+        <div style={{color:"#A7F3D0",fontSize:14,marginBottom:32,textAlign:"center"}}>Apni dukan ka naam daalo — yeh admin dashboard mein dikhega</div>
+        <div style={{width:"100%",maxWidth:340}}>
+          <input
+            value={tempName}
+            onChange={e=>setTempName(e.target.value)}
+            placeholder="e.g. Ramesh Fruit & Sabzi Store"
+            autoFocus
+            style={{width:"100%",padding:"16px",borderRadius:14,border:"none",fontSize:16,fontWeight:600,outline:"none",boxSizing:"border-box",marginBottom:12,textAlign:"center"}}
+          />
+          <button
+            onClick={()=>{
+              if(!tempName.trim()){ notify("Dukan ka naam daalo!","error"); return; }
+              const name = tempName.trim();
+              setShopName(name);
+              setShopSetup(true);
+              sbPing(deviceId, name, trialStart, !!paidMonth, paidMonth||null);
+              notify("✅ Dukan save ho gayi!");
+            }}
+            style={{width:"100%",padding:"15px 0",borderRadius:14,border:"none",background:tempName.trim()?"linear-gradient(135deg,#128C7E,#25D366)":"rgba(255,255,255,0.3)",color:"white",fontWeight:900,fontSize:16,cursor:"pointer"}}>
+            ✅ Shuru Karo
+          </button>
+        </div>
+        <div style={{color:"#A7F3D0",fontSize:11,marginTop:24,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
       </div>
     );
   }
