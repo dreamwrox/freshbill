@@ -192,6 +192,7 @@ export default function App() {
   const [activeItem,   setActiveItem]  = useState(null);
   const [vendorList,   setVendorList]  = useState([]);
   const [vendorLoading,setVendorLoading]=useState(false);
+  const [tempShopName, setTempShopName]= useState("");
   const [customRate,   setCustomRate]  = useState("");
   const [toast,        setToast]       = useState(null);
   const [billItems,    setBillItems]   = useState([]);
@@ -626,7 +627,6 @@ export default function App() {
 
   // ── SHOP NAME SETUP (first time vendor opens app) ──
   if(role==="vendor" && screen==="home" && !shopSetup){
-    const [tempName, setTempName] = useState("");
     return (
       <div style={{minHeight:"100vh",background:`linear-gradient(160deg,${C.navy} 0%,${C.green} 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Segoe UI,sans-serif",padding:24}}>
         {toast && <Toast {...toast}/>}
@@ -635,22 +635,23 @@ export default function App() {
         <div style={{color:"#A7F3D0",fontSize:14,marginBottom:32,textAlign:"center"}}>Apni dukan ka naam daalo — yeh admin dashboard mein dikhega</div>
         <div style={{width:"100%",maxWidth:340}}>
           <input
-            value={tempName}
-            onChange={e=>setTempName(e.target.value)}
+            value={tempShopName}
+            onChange={e=>setTempShopName(e.target.value)}
             placeholder="e.g. Ramesh Fruit & Sabzi Store"
             autoFocus
             style={{width:"100%",padding:"16px",borderRadius:14,border:"none",fontSize:16,fontWeight:600,outline:"none",boxSizing:"border-box",marginBottom:12,textAlign:"center"}}
           />
           <button
             onClick={()=>{
-              if(!tempName.trim()){ notify("Dukan ka naam daalo!","error"); return; }
-              const name = tempName.trim();
+              if(!tempShopName.trim()){ notify("Dukan ka naam daalo!","error"); return; }
+              const name = tempShopName.trim();
               setShopName(name);
               setShopSetup(true);
+              setTempShopName("");
               sbPing(deviceId, name, trialStart, !!paidMonth, paidMonth||null);
               notify("✅ Dukan save ho gayi!");
             }}
-            style={{width:"100%",padding:"15px 0",borderRadius:14,border:"none",background:tempName.trim()?"linear-gradient(135deg,#128C7E,#25D366)":"rgba(255,255,255,0.3)",color:"white",fontWeight:900,fontSize:16,cursor:"pointer"}}>
+            style={{width:"100%",padding:"15px 0",borderRadius:14,border:"none",background:tempShopName.trim()?"linear-gradient(135deg,#128C7E,#25D366)":"rgba(255,255,255,0.3)",color:"white",fontWeight:900,fontSize:16,cursor:"pointer"}}>
             ✅ Shuru Karo
           </button>
         </div>
