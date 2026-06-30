@@ -305,6 +305,7 @@ export default function App() {
   const [shopSetup,    setShopSetup]   = useState(false); // true = vendor has set their name
   const [vendorOwnWA,  setVendorOwnWA] = useState("");    // vendor's own WhatsApp for customer directory
   const [selectedVendor,setSelectedVendor]=useState(null); // vendor customer picked from directory
+  const [selectedVendorName,setSelectedVendorName]=useState(""); // persisted shop name shown even before directory re-fetch
   const [vendorDirectory,setVendorDirectory]=useState([]);
   const [dirLoading,   setDirLoading]  = useState(false);
   const [adminPass,    setAdminPass]   = useState("");
@@ -356,6 +357,10 @@ export default function App() {
         if(d.custVendorWA) setCustVendorWA(d.custVendorWA);
         if(d.custOwnName)  setCustOwnName(d.custOwnName);
         if(d.custSetup)    setCustSetup(d.custSetup);
+        if(d.selectedVendorName){
+          setSelectedVendorName(d.selectedVendorName);
+          setSelectedVendor({ shop_name: d.selectedVendorName, vendor_wa: d.custVendorWA||"" });
+        }
         // Ping Supabase with real name from storage (only if name is set)
         if(d.shopSetup && d.shopName && d.shopName!=="Mera Fruit & Sabzi Store"){
           sbPing(deviceId, d.shopName, d.trialStart, !!d.paidMonth, d.paidMonth||null, d.vendorOwnWA);
@@ -394,8 +399,8 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA});
-  },[items,rates,bills,shopName,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,selectedVendorName});
+  },[items,rates,bills,shopName,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,selectedVendorName,screen]);
 
   // ── RE-PING SUPABASE when shop name changes ──
   useEffect(()=>{
@@ -806,6 +811,7 @@ export default function App() {
           {filtered.map(v=>(
             <div key={v.device_id} onClick={()=>{
                 setSelectedVendor(v);
+                setSelectedVendorName(v.shop_name||"");
                 setCustVendorWA(v.vendor_wa||"");
                 setScreen("home");
                 notify(`✅ ${v.shop_name} select ho gaya`);
