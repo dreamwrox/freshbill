@@ -36,19 +36,57 @@ async function sbPing(deviceId, shopName, trialStart, isPaid, paidMonth, vendorW
   } catch(e){ console.error("sbPing error:", e); }
 }
 
+// Like sbPing but returns {ok, error} so the UI can show real success/failure
+async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth, vendorWA) {
+  try {
+    const body = {
+      last_seen:   new Date().toISOString(),
+      shop_name:   shopName || "Unknown Shop",
+      trial_start: trialStart,
+      is_paid:     isPaid,
+      paid_month:  paidMonth || null,
+      vendor_wa:   vendorWA,
+    };
+    // First try to UPDATE the existing row (vendor already exists in DB)
+    const patchRes = await fetch(`${SB_URL}/rest/v1/vendor_sessions?device_id=eq.${encodeURIComponent(deviceId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type":"application/json", "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Prefer":"return=representation" },
+      body: JSON.stringify(body)
+    });
+    if(patchRes.ok){
+      const updated = await patchRes.json();
+      if(Array.isArray(updated) && updated.length>0){ return { ok:true }; }
+      // No existing row was updated → INSERT a new one
+      const insertRes = await fetch(`${SB_URL}/rest/v1/vendor_sessions`, {
+        method: "POST",
+        headers: { "Content-Type":"application/json", "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Prefer":"return=minimal" },
+        body: JSON.stringify({ device_id: deviceId, ...body })
+      });
+      if(insertRes.ok){ return { ok:true }; }
+      return { ok:false, error:`Insert ${insertRes.status}: ${(await insertRes.text()).slice(0,150)}` };
+    }
+    return { ok:false, error:`Update ${patchRes.status}: ${(await patchRes.text()).slice(0,150)}` };
+  } catch(e){ return { ok:false, error:e.message||"Network error" }; }
+}
+
 // Public directory — vendors who've set their WhatsApp number, for customers to browse
 async function sbFetchDirectory() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/vendor_sessions?vendor_wa=not.is.null&order=shop_name.asc&limit=200`, {
+    // Fetch all vendor sessions, then filter for ones with a WhatsApp number in JS
+    // (avoids query-syntax dependency on the vendor_wa column existing)
+    const res = await fetch(`${SB_URL}/rest/v1/vendor_sessions?order=last_seen.desc&limit=300`, {
       headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
     });
     if(!res.ok){
       const errText = await res.text();
       console.error("sbFetchDirectory failed:", res.status, errText);
-      return { error: `${res.status}: ${errText.slice(0,150)}` };
+      return { error: `${res.status}: ${errText.slice(0,180)}` };
     }
     const data = await res.json();
-    return Array.isArray(data) ? data : { error: "Unexpected response shape" };
+    if(!Array.isArray(data)) return { error: "Unexpected response: "+JSON.stringify(data).slice(0,120) };
+    // Keep only vendors who have a usable WhatsApp number
+    const withWA = data.filter(v=> v.vendor_wa && String(v.vendor_wa).replace(/[^0-9]/g,"").length >= 10);
+    return withWA;
   } catch(e) { return { error: e.message||"Network error" }; }
 }
 
@@ -490,7 +528,8 @@ export default function App() {
   function custSendWA(){
     if(!custList.length){ notify("Pehle kuch items chuno!","error"); return; }
     const targetWA = selectedVendor?.vendor_wa || custVendorWA;
-    const num = (targetWA||"").replace(/[^0-9]/g,"");
+    let num = (targetWA||"").replace(/[^0-9]/g,"");
+    if(num.length === 10){ num = "91" + num; } // add India code if missing
     if(!num){ notify("Dukandaar chuno ya number daalo!","error"); return; }
     let m=`🛒 *Meri Sabzi List*`;
     if(custOwnName) m+=`\n👤 ${custOwnName}`;
@@ -952,7 +991,7 @@ export default function App() {
                 🏪 Dukandaar Chuno
               </button>
             )}
-            <input value={custVendorWA} onChange={e=>setCustVendorWA(e.target.value)} placeholder="Ya WhatsApp number type karo (91...)" type="tel"
+            <input value={custVendorWA} onChange={e=>setCustVendorWA(e.target.value.replace(/[^0-9]/g,""))} placeholder="Ya WhatsApp number type karo (91...)" type="tel"
               style={{width:"100%",marginTop:8,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:13,boxSizing:"border-box",outline:"none"}}/>
             <button onClick={custSendWA}
               style={{width:"100%",marginTop:12,padding:"14px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:16,cursor:"pointer"}}>
@@ -1289,13 +1328,17 @@ export default function App() {
             <input
               value={vendorOwnWA}
               onChange={e=>setVendorOwnWA(e.target.value.replace(/[^0-9]/g,""))}
-              placeholder="91XXXXXXXXXX (country code ke saath)"
+              placeholder="10 digit number (jaise 9773853112)"
               type="tel"
               style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:10}}/>
             <button onClick={async()=>{
-              if(vendorOwnWA.length < 10){ notify("Sahi number daalo (10+ digit)","error"); return; }
-              await sbPing(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, vendorOwnWA);
-              notify("✅ Number save ho gaya! Ab aap Grahak ki list mein dikhoge");
+              const clean = vendorOwnWA.replace(/[^0-9]/g,"");
+              if(clean.length < 10){ notify("Sahi number daalo (10 digit)","error"); return; }
+              // Store with country code for WhatsApp, but don't change what vendor sees
+              const numToSave = clean.length === 10 ? "91" + clean : clean;
+              const result = await sbPingVerified(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, numToSave);
+              if(result.ok){ notify("✅ Number save ho gaya! Ab aap Grahak ki list mein dikhoge"); }
+              else { notify("❌ Save fail: "+(result.error||"unknown"),"error"); }
             }} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:`linear-gradient(135deg,${C.green},#25D366)`,color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
               💾 Save Karo & List Me Add Karo
             </button>
