@@ -39,8 +39,14 @@ async function sbFetchDirectory() {
     const res = await fetch(`${SB_URL}/rest/v1/vendor_sessions?vendor_wa=not.is.null&order=shop_name.asc&limit=200`, {
       headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
     });
-    return await res.json();
-  } catch { return []; }
+    if(!res.ok){
+      const errText = await res.text();
+      console.error("sbFetchDirectory failed:", res.status, errText);
+      return { error: `${res.status}: ${errText.slice(0,150)}` };
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : { error: "Unexpected response shape" };
+  } catch(e) { return { error: e.message||"Network error" }; }
 }
 
 async function sbBillTrack(deviceId, total) {
@@ -308,6 +314,7 @@ export default function App() {
   const [selectedVendorName,setSelectedVendorName]=useState(""); // persisted shop name shown even before directory re-fetch
   const [vendorDirectory,setVendorDirectory]=useState([]);
   const [dirLoading,   setDirLoading]  = useState(false);
+  const [dirError,     setDirError]    = useState("");
   const [adminPass,    setAdminPass]   = useState("");
   const [adminUnlocked,setAdminUnlocked]=useState(false);
   const [visitorCount, setVisitorCount]= useState(null);
@@ -793,14 +800,24 @@ export default function App() {
         <div style={{padding:16}}>
           <button onClick={async()=>{
             setDirLoading(true);
+            setDirError("");
             const data = await sbFetchDirectory();
-            setVendorDirectory(Array.isArray(data)?data:[]);
+            if(data && data.error){ setDirError(data.error); setVendorDirectory([]); }
+            else { setVendorDirectory(Array.isArray(data)?data:[]); }
             setDirLoading(false);
           }} style={{width:"100%",padding:"11px 0",borderRadius:12,border:`1.5px solid ${C.green}`,background:"white",color:C.green,fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:14}}>
             {dirLoading?"Loading…":"🔄 Dukandaar List Refresh Karo"}
           </button>
 
-          {filtered.length===0 && !dirLoading && (
+          {dirError && (
+            <div style={{background:"#FEE2E2",border:"1.5px solid #DC2626",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+              <div style={{fontWeight:700,color:"#DC2626",fontSize:13}}>⚠️ Error</div>
+              <div style={{fontSize:12,color:"#991B1B",marginTop:4,wordBreak:"break-word"}}>{dirError}</div>
+              <div style={{fontSize:11,color:"#991B1B",marginTop:6}}>Agar yeh "vendor_wa" column ke baare mein hai, toh Supabase SQL Editor mein supabase-add-directory.sql chalao.</div>
+            </div>
+          )}
+
+          {filtered.length===0 && !dirLoading && !dirError && (
             <div style={{textAlign:"center",color:C.gray,padding:"30px 0"}}>
               <div style={{fontSize:36}}>🏪</div>
               <div style={{marginTop:8,fontSize:14}}>Koi dukandaar nahi mila</div>
