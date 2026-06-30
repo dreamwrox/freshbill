@@ -37,7 +37,7 @@ async function sbPing(deviceId, shopName, trialStart, isPaid, paidMonth, vendorW
 }
 
 // Like sbPing but returns {ok, error} so the UI can show real success/failure
-async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth, vendorWA) {
+async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth, vendorWA, shopNameHi, shopNamePa) {
   try {
     const body = {
       last_seen:   new Date().toISOString(),
@@ -47,6 +47,8 @@ async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth,
       paid_month:  paidMonth || null,
       vendor_wa:   vendorWA,
     };
+    if(shopNameHi) body.shop_name_hi = shopNameHi;
+    if(shopNamePa) body.shop_name_pa = shopNamePa;
     // First try to UPDATE the existing row (vendor already exists in DB)
     const patchRes = await fetch(`${SB_URL}/rest/v1/vendor_sessions?device_id=eq.${encodeURIComponent(deviceId)}`, {
       method: "PATCH",
@@ -304,6 +306,11 @@ function itemName(item, lang){
   if(lang==="pa" && item.pa) return item.pa;
   return item.name.split("/")[0].trim();
 }
+function shopDisplayName(name, hi, pa, lang){
+  if(lang==="hi" && hi) return hi;
+  if(lang==="pa" && pa) return pa;
+  return name;
+}
 function todayStr(){ return new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"2-digit",year:"numeric"}); }
 function billId(){ return "B"+Date.now().toString().slice(-5); }
 
@@ -328,6 +335,8 @@ export default function App() {
   const [rates,        setRates]       = useState({});
   const [bills,        setBills]       = useState([]);
   const [shopName,     setShopName]    = useState("Mera Fruit & Sabzi Store");
+  const [shopNameHi,   setShopNameHi]  = useState(""); // dukan ka naam Hindi mein
+  const [shopNamePa,   setShopNamePa]  = useState(""); // dukan da naam Punjabi vich
   const [appLang,      setAppLang]     = useState("en"); // "en" | "hi" | "pa"
   const [activeItem,   setActiveItem]  = useState(null);
   const [vendorList,   setVendorList]  = useState([]);
@@ -396,6 +405,8 @@ export default function App() {
         if(d.rates)     setRates(d.rates);
         if(d.bills)     setBills(d.bills);
         if(d.shopName)  setShopName(d.shopName);
+        if(d.shopNameHi)setShopNameHi(d.shopNameHi);
+        if(d.shopNamePa)setShopNamePa(d.shopNamePa);
         if(d.appLang)   setAppLang(d.appLang);
         if(d.shopSetup) setShopSetup(d.shopSetup);
         if(d.vendorOwnWA) setVendorOwnWA(d.vendorOwnWA);
@@ -447,8 +458,8 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,selectedVendorName});
-  },[items,rates,bills,shopName,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,selectedVendorName,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,selectedVendorName});
+  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,selectedVendorName,screen]);
 
   // ── RE-PING SUPABASE when shop name changes ──
   useEffect(()=>{
@@ -536,7 +547,7 @@ export default function App() {
     if(selectedVendor) m+=`\n🏪 ${selectedVendor.shop_name}`;
     m+=`\n📅 ${todayStr()}\n\n`;
     custList.forEach((it,i)=>{ m+=`${i+1}. ${it.emoji} ${itemName(it, appLang)} — ${it.qty} ${it.unit}\n`; });
-    m+=`\nBhaiya ye saman chahiye. Available hai? Rate aur total bata dena please 🙏`;
+    m+=`\nBhaiya ye saman chahiye. Available hai? Rate aur total bata dena please.`;
     const url=`https://wa.me/${num}?text=${encodeURIComponent(m)}`;
     window.open(url,"_blank");
     // Track list sent in Supabase
@@ -867,23 +878,26 @@ export default function App() {
             </div>
           )}
 
-          {filtered.map(v=>(
+          {filtered.map(v=>{
+            const displayName = shopDisplayName(v.shop_name, v.shop_name_hi, v.shop_name_pa, appLang);
+            return (
             <div key={v.device_id} onClick={()=>{
                 setSelectedVendor(v);
                 setSelectedVendorName(v.shop_name||"");
                 setCustVendorWA(v.vendor_wa||"");
                 setScreen("home");
-                notify(`✅ ${v.shop_name} select ho gaya`);
+                notify(`✅ ${displayName} select ho gaya`);
               }}
               style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:10,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
-                <div style={{fontWeight:700,fontSize:15,color:C.navy}}>🏪 {v.shop_name}</div>
+                <div style={{fontWeight:700,fontSize:15,color:C.navy}}>🏪 {displayName}</div>
                 {v.area && <div style={{fontSize:12,color:C.gray,marginTop:2}}>📍 {v.area}</div>}
                 <div style={{fontSize:11,color:C.gray,marginTop:2}}>📞 {v.vendor_wa}</div>
               </div>
               <div style={{fontSize:18,color:C.green}}>›</div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -982,7 +996,7 @@ export default function App() {
 
             {selectedVendor ? (
               <div onClick={()=>setScreen("vendorPicker")} style={{marginTop:8,padding:"10px 12px",borderRadius:10,border:`2px solid ${C.lgreen}`,background:"#E8F5E9",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div><div style={{fontSize:11,color:C.gray}}>Dukandaar</div><div style={{fontWeight:700,fontSize:14,color:C.navy}}>🏪 {selectedVendor.shop_name}</div></div>
+                <div><div style={{fontSize:11,color:C.gray}}>Dukandaar</div><div style={{fontWeight:700,fontSize:14,color:C.navy}}>🏪 {shopDisplayName(selectedVendor.shop_name, selectedVendor.shop_name_hi, selectedVendor.shop_name_pa, appLang)}</div></div>
                 <div style={{fontSize:12,color:C.green,fontWeight:700}}>Badlo ›</div>
               </div>
             ) : (
@@ -999,9 +1013,10 @@ export default function App() {
             </button>
             <div style={{textAlign:"center",fontSize:11,color:C.gray,margin:"10px 0"}}>— ya —</div>
             <button onClick={()=>{
-              const num=(selectedVendor?.vendor_wa||custVendorWA||"").replace(/[^0-9]/g,"");
+              let num=(selectedVendor?.vendor_wa||custVendorWA||"").replace(/[^0-9]/g,"");
+              if(num.length===10){ num="91"+num; }
               if(!num){ notify("Pehle dukandaar chuno!","error"); return; }
-              // Opens WhatsApp chat directly — customer can record & send a voice note there (free, native, reliable)
+              // Opens WhatsApp chat directly — customer records & sends a voice note there (free, native)
               window.open(`https://wa.me/${num}`,"_blank");
               notify("🎤 WhatsApp khul gaya — mic dabakar voice note bhejo!");
             }} style={{width:"100%",padding:"13px 0",borderRadius:14,border:`2px solid ${C.green}`,background:"#F0FFF4",color:C.green,fontWeight:800,fontSize:15,cursor:"pointer"}}>
@@ -1116,7 +1131,7 @@ export default function App() {
             <span style={{fontWeight:900,letterSpacing:2,fontSize:16,color:C.navy}}>{deviceId}</span>
           </div>
           <button onClick={()=>{
-            const msg=`Namaste Harjit bhai! 🙏\n\nMaine FreshBill ke liye ₹30 pay kar diya.\n\nMera Device ID: *${deviceId}*\n\nPlease mujhe is mahine ka unlock code bhej dena. Screenshot attach kar raha/rahi hoon.`;
+            const msg=`Namaste Harjit bhai!\n\nMaine FreshBill ke liye ₹30 pay kar diya.\n\nMera Device ID: *${deviceId}*\n\nPlease mujhe is mahine ka unlock code bhej dena. Screenshot attach kar raha/rahi hoon.`;
             window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`,"_blank");
           }} style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:15,cursor:"pointer"}}>
             📲 WhatsApp karo (Screenshot ke saath)
@@ -1246,7 +1261,7 @@ export default function App() {
       {/* Welcome banner for returning vendor */}
       {showWelcome && shopName && shopName!=="JK Technologies — Admin" && (
         <div style={{position:"fixed",top:0,left:0,right:0,zIndex:999,background:`linear-gradient(135deg,${C.navy},${C.green})`,color:"white",padding:"14px 20px",textAlign:"center",boxShadow:"0 4px 20px rgba(0,0,0,0.2)"}}>
-          <div style={{fontSize:20}}>👋 Wapas aaye {shopName}!</div>
+          <div style={{fontSize:20}}>👋 Wapas aaye {shopDisplayName(shopName, shopNameHi, shopNamePa, appLang)}!</div>
           <div style={{fontSize:13,opacity:0.9,marginTop:2}}>Aaj ke rates set karo aur bill banao 🧾</div>
         </div>
       )}
@@ -1309,7 +1324,7 @@ export default function App() {
             <div style={{fontWeight:900,fontSize:28,letterSpacing:4,marginBottom:10}}>{deviceId}</div>
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>{
-                const msg=`Namaste! 🙏\n\nMain FreshBill use kar raha/rahi hoon.\n\nMera Device ID: *${deviceId}*\nDukan: *${shopName}*\n\nPlease mujhe is mahine ka unlock code bhej dena. 🙏`;
+                const msg=`Namaste! Main FreshBill use kar raha/rahi hoon.\n\nMera Device ID: *${deviceId}*\nDukan: *${shopName}*\n\nPlease mujhe is mahine ka unlock code bhej dena.`;
                 window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`,"_blank");
               }} style={{flex:2,padding:"11px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:13,cursor:"pointer"}}>
                 📲 Device ID Bhejo
@@ -1321,8 +1336,32 @@ export default function App() {
             </div>
           </div>
 
-          {/* Customer Directory Listing — vendor's own WhatsApp number */}
+          {/* Customer Directory Listing — vendor's own WhatsApp number + multilingual name */}
           <div style={{background:"white",borderRadius:16,padding:"14px 16px",marginBottom:14,boxShadow:"0 1px 8px rgba(0,0,0,0.06)"}}>
+            <div style={{fontWeight:700,color:C.navy,fontSize:14,marginBottom:4}}>🏪 Dukan Ka Naam — English, Hindi, Punjabi</div>
+            <div style={{fontSize:11,color:C.gray,marginBottom:10}}>Grahak ki bhasha ke hisaab se naam dikhega</div>
+
+            <div style={{fontSize:11,color:C.gray,marginBottom:4}}>🇬🇧 English / Hinglish naam</div>
+            <input
+              value={shopName}
+              onChange={e=>setShopName(e.target.value)}
+              placeholder="e.g. Ramesh Fruit & Sabzi Store"
+              style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:10}}/>
+
+            <div style={{fontSize:11,color:C.gray,marginBottom:4}}>🇮🇳 हिंदी में नाम</div>
+            <input
+              value={shopNameHi}
+              onChange={e=>setShopNameHi(e.target.value)}
+              placeholder="जैसे: रमेश फल और सब्ज़ी भंडार"
+              style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:10}}/>
+
+            <div style={{fontSize:11,color:C.gray,marginBottom:4}}>☬ ਪੰਜਾਬੀ ਵਿੱਚ ਨਾਮ</div>
+            <input
+              value={shopNamePa}
+              onChange={e=>setShopNamePa(e.target.value)}
+              placeholder="ਜਿਵੇਂ: ਰਮੇਸ਼ ਫਲ ਅਤੇ ਸਬਜ਼ੀ ਭੰਡਾਰ"
+              style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:14}}/>
+
             <div style={{fontWeight:700,color:C.navy,fontSize:14,marginBottom:4}}>📞 Apna WhatsApp Number (Grahak ke liye)</div>
             <div style={{fontSize:11,color:C.gray,marginBottom:10}}>Yeh number Grahak ko "Dukandaar Chuno" list mein dikhega</div>
             <input
@@ -1332,15 +1371,16 @@ export default function App() {
               type="tel"
               style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:10}}/>
             <button onClick={async()=>{
+              if(!shopName.trim()){ notify("Dukan ka naam (English) daalo","error"); return; }
               const clean = vendorOwnWA.replace(/[^0-9]/g,"");
               if(clean.length < 10){ notify("Sahi number daalo (10 digit)","error"); return; }
               // Store with country code for WhatsApp, but don't change what vendor sees
               const numToSave = clean.length === 10 ? "91" + clean : clean;
-              const result = await sbPingVerified(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, numToSave);
-              if(result.ok){ notify("✅ Number save ho gaya! Ab aap Grahak ki list mein dikhoge"); }
+              const result = await sbPingVerified(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, numToSave, shopNameHi, shopNamePa);
+              if(result.ok){ notify("✅ Save ho gaya! Ab aap Grahak ki list mein dikhoge"); }
               else { notify("❌ Save fail: "+(result.error||"unknown"),"error"); }
             }} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:`linear-gradient(135deg,${C.green},#25D366)`,color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
-              💾 Save Karo & List Me Add Karo
+              💾 Sab Save Karo
             </button>
             {vendorOwnWA && vendorOwnWA.length>=10 && <div style={{fontSize:11,color:C.green,marginTop:8,fontWeight:600,textAlign:"center"}}>✅ Number set hai — Save dabana zaroori hai</div>}
           </div>
