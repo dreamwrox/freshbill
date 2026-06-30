@@ -10,27 +10,30 @@ async function save(key, val) {
 
 // ─── SUPABASE TRACKING ────────────────────────────────────────────────────
 const SB_URL = "https://suwltzucwfknvljiftcd.supabase.co";
-const SB_KEY = "sb_publishable_hbvCu6PRzDBeKzB2HXVtNg_oMMW3eM7";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1d2x0enVjd2ZrbnZsamlmdGNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3Mjg2MDksImV4cCI6MjA5ODMwNDYwOX0.nuw87hmkO9l0dPWO7Udbw7gJK14nN5sB8i5FtTL5wgQ";
 const sbHeaders = { "Content-Type":"application/json", "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Prefer":"resolution=merge-duplicates" };
 
 async function sbPing(deviceId, shopName, trialStart, isPaid, paidMonth, vendorWA) {
-  if(!shopName || shopName==="Unknown Shop" || shopName==="Mera Fruit & Sabzi Store") return;
+  // Skip only if there's nothing useful to save (no real name AND no WhatsApp number)
+  const hasRealName = shopName && shopName!=="Unknown Shop" && shopName!=="Mera Fruit & Sabzi Store";
+  if(!hasRealName && !vendorWA) return;
   try {
     const body = {
       device_id:   deviceId,
       last_seen:   new Date().toISOString(),
-      shop_name:   shopName,
+      shop_name:   shopName || "Unknown Shop",
       trial_start: trialStart,
       is_paid:     isPaid,
       paid_month:  paidMonth || null,
     };
     if(vendorWA) body.vendor_wa = vendorWA;
-    await fetch(`${SB_URL}/rest/v1/vendor_sessions`, {
+    const res = await fetch(`${SB_URL}/rest/v1/vendor_sessions`, {
       method: "POST",
       headers: { ...sbHeaders, "Prefer":"resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify(body)
     });
-  } catch {}
+    if(!res.ok){ console.error("sbPing failed:", res.status, await res.text()); }
+  } catch(e){ console.error("sbPing error:", e); }
 }
 
 // Public directory — vendors who've set their WhatsApp number, for customers to browse
@@ -1282,14 +1285,21 @@ export default function App() {
           {/* Customer Directory Listing — vendor's own WhatsApp number */}
           <div style={{background:"white",borderRadius:16,padding:"14px 16px",marginBottom:14,boxShadow:"0 1px 8px rgba(0,0,0,0.06)"}}>
             <div style={{fontWeight:700,color:C.navy,fontSize:14,marginBottom:4}}>📞 Apna WhatsApp Number (Grahak ke liye)</div>
-            <div style={{fontSize:11,color:C.gray,marginBottom:10}}>Yeh number Grahak ko "Dukandaar chuno" list mein dikhega</div>
+            <div style={{fontSize:11,color:C.gray,marginBottom:10}}>Yeh number Grahak ko "Dukandaar Chuno" list mein dikhega</div>
             <input
               value={vendorOwnWA}
               onChange={e=>setVendorOwnWA(e.target.value.replace(/[^0-9]/g,""))}
-              placeholder="91XXXXXXXXXX"
+              placeholder="91XXXXXXXXXX (country code ke saath)"
               type="tel"
-              style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none"}}/>
-            {vendorOwnWA && <div style={{fontSize:11,color:C.green,marginTop:6,fontWeight:600}}>✅ Aap Grahak ki list mein dikhoge</div>}
+              style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:10}}/>
+            <button onClick={async()=>{
+              if(vendorOwnWA.length < 10){ notify("Sahi number daalo (10+ digit)","error"); return; }
+              await sbPing(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, vendorOwnWA);
+              notify("✅ Number save ho gaya! Ab aap Grahak ki list mein dikhoge");
+            }} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:`linear-gradient(135deg,${C.green},#25D366)`,color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
+              💾 Save Karo & List Me Add Karo
+            </button>
+            {vendorOwnWA && vendorOwnWA.length>=10 && <div style={{fontSize:11,color:C.green,marginTop:8,fontWeight:600,textAlign:"center"}}>✅ Number set hai — Save dabana zaroori hai</div>}
           </div>
 
           <input value={rateSearch} onChange={e=>setRateSearch(e.target.value)} placeholder="🔍 Item dhoondo..."
