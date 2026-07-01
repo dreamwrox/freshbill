@@ -36,8 +36,42 @@ async function sbPing(deviceId, shopName, trialStart, isPaid, paidMonth, vendorW
   } catch(e){ console.error("sbPing error:", e); }
 }
 
+
+// ── GPS & LOCATION HELPERS ──────────────────────────────────────────────────
+
+// Get browser GPS coords — returns {lat, lng} or throws
+function getBrowserLocation(){
+  return new Promise((resolve, reject)=>{
+    if(!navigator.geolocation){ reject(new Error("GPS is not supported on this device")); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => reject(new Error("GPS access denied. Please allow location in browser settings.")),
+      { timeout: 10000, maximumAge: 60000 }
+    );
+  });
+}
+
+// Reverse geocode lat/lng to a human-readable area name using OpenStreetMap (free)
+async function reverseGeocode(lat, lng){
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=14`,
+      { headers: { "Accept-Language":"en" } });
+    const data = await res.json();
+    const a = data.address||{};
+    // Pick the most useful locality level
+    return a.suburb || a.neighbourhood || a.village || a.town || a.city_district || a.city || a.county || "Unknown Area";
+  } catch { return null; }
+}
+
+// Calculate distance in km between two GPS points (Haversine formula)
+function distanceKm(lat1, lng1, lat2, lng2){
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 // Like sbPing but returns {ok, error} so the UI can show real success/failure
-async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth, vendorWA, shopNameHi, shopNamePa) {
+async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth, vendorWA, shopNameHi, shopNamePa, area, lat, lng) {
   try {
     const body = {
       last_seen:   new Date().toISOString(),
@@ -49,6 +83,9 @@ async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth,
     };
     if(shopNameHi) body.shop_name_hi = shopNameHi;
     if(shopNamePa) body.shop_name_pa = shopNamePa;
+    if(area)       body.area = area;
+    if(lat)        body.lat  = lat;
+    if(lng)        body.lng  = lng;
     // First try to UPDATE the existing row (vendor already exists in DB)
     const patchRes = await fetch(`${SB_URL}/rest/v1/vendor_sessions?device_id=eq.${encodeURIComponent(deviceId)}`, {
       method: "PATCH",
@@ -359,7 +396,14 @@ export default function App() {
   const [codeError,    setCodeError]   = useState("");
   const [showAdmin,    setShowAdmin]   = useState(false);
   const [shopSetup,    setShopSetup]   = useState(false); // true = vendor has set their name
-  const [vendorOwnWA,  setVendorOwnWA] = useState("");    // vendor's own WhatsApp for customer directory
+  const [vendorOwnWA,  setVendorOwnWA] = useState("");
+  const [vendorArea,   setVendorArea]  = useState("");   // vendor's area text
+  const [vendorLat,    setVendorLat]   = useState(null); // vendor GPS lat
+  const [vendorLng,    setVendorLng]   = useState(null); // vendor GPS lng
+  const [locLoading,   setLocLoading]  = useState(false);// GPS fetching
+  const [custLat,      setCustLat]     = useState(null); // customer GPS lat
+  const [custLng,      setCustLng]     = useState(null); // customer GPS lng
+  const [locationFilter,setLocationFilter]=useState("all"); // "all" | "near"    // vendor's own WhatsApp for customer directory
   const [selectedVendor,setSelectedVendor]=useState(null); // vendor customer picked from directory
   const [selectedVendorName,setSelectedVendorName]=useState(""); // persisted shop name shown even before directory re-fetch
   const [vendorDirectory,setVendorDirectory]=useState([]);
@@ -410,6 +454,9 @@ export default function App() {
         if(d.appLang)   setAppLang(d.appLang);
         if(d.shopSetup) setShopSetup(d.shopSetup);
         if(d.vendorOwnWA) setVendorOwnWA(d.vendorOwnWA);
+        if(d.vendorArea)  setVendorArea(d.vendorArea);
+        if(d.vendorLat)   setVendorLat(d.vendorLat);
+        if(d.vendorLng)   setVendorLng(d.vendorLng);
         if(d.trialStart)setTrialStart(d.trialStart);
         if(d.paidMonth) setPaidMonth(d.paidMonth);
         // Role is NOT restored — picker shows on every app open
@@ -458,8 +505,8 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,selectedVendorName});
-  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,selectedVendorName,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,vendorArea,vendorLat,vendorLng,selectedVendorName});
+  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,vendorArea,vendorLat,vendorLng,selectedVendorName,screen]);
 
   // ── RE-PING SUPABASE when shop name changes ──
   useEffect(()=>{
@@ -837,7 +884,22 @@ export default function App() {
   // ── VENDOR PICKER (Grahak chooses a Dukandaar) ──
   if(role==="customer" && screen==="vendorPicker"){
     const q = custSearch.trim().toLowerCase();
-    const filtered = vendorDirectory.filter(v=>!q || (v.shop_name||"").toLowerCase().includes(q));
+
+    // Sort and filter vendors
+    let displayList = [...vendorDirectory];
+
+    // If customer has GPS and Near Me is selected, sort by distance
+    if(locationFilter==="near" && custLat && custLng){
+      displayList = displayList
+        .filter(v => v.lat && v.lng) // only vendors with GPS
+        .map(v=>({ ...v, _dist: distanceKm(custLat, custLng, v.lat, v.lng) }))
+        .sort((a,b)=>a._dist - b._dist)
+        .slice(0, 20); // top 20 nearest
+    }
+
+    // Text search
+    if(q) displayList = displayList.filter(v=>(v.shop_name||"").toLowerCase().includes(q)||(v.area||"").toLowerCase().includes(q));
+
     return (
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:24}}>
         {toast && <Toast {...toast}/>}
@@ -846,56 +908,92 @@ export default function App() {
             <button onClick={()=>setScreen("home")} style={{background:"none",border:"none",color:"white",fontSize:22,cursor:"pointer"}}>←</button>
             <div style={{fontWeight:900,fontSize:18}}>🏪 Dukandaar Chuno</div>
           </div>
-          <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Dukan ka naam dhoondo..."
+          <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Naam ya area dhoondo..."
             style={{width:"100%",padding:"11px 14px",borderRadius:12,border:"none",fontSize:14,boxSizing:"border-box",outline:"none"}}/>
         </div>
 
         <div style={{padding:16}}>
-          <button onClick={async()=>{
-            setDirLoading(true);
-            setDirError("");
-            const data = await sbFetchDirectory();
-            if(data && data.error){ setDirError(data.error); setVendorDirectory([]); }
-            else { setVendorDirectory(Array.isArray(data)?data:[]); }
-            setDirLoading(false);
-          }} style={{width:"100%",padding:"11px 0",borderRadius:12,border:`1.5px solid ${C.green}`,background:"white",color:C.green,fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:14}}>
-            {dirLoading?"Loading…":"🔄 Dukandaar List Refresh Karo"}
-          </button>
+
+          {/* Location filter buttons */}
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <button onClick={()=>{setLocationFilter("all");setCustLat(null);setCustLng(null);}}
+              style={{flex:1,padding:"10px 0",borderRadius:10,border:"none",background:locationFilter==="all"?C.navy:"#E8F5E9",color:locationFilter==="all"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+              🏪 Sab Vendors
+            </button>
+            <button onClick={async()=>{
+              if(custLat && locationFilter==="near"){ setLocationFilter("all"); setCustLat(null); setCustLng(null); return; }
+              notify("📡 Aapki location dhundh raha hai...");
+              try {
+                const pos = await getBrowserLocation();
+                setCustLat(pos.lat); setCustLng(pos.lng);
+                setLocationFilter("near");
+                notify("✅ Aapke paas ke vendors dikh rahe hain");
+              } catch(e){ notify(e.message,"error"); }
+            }}
+              style={{flex:1,padding:"10px 0",borderRadius:10,border:"none",background:locationFilter==="near"?C.green:"#E8F5E9",color:locationFilter==="near"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+              {locationFilter==="near"?"📍 Near Me (ON)":"📍 Near Me"}
+            </button>
+            <button onClick={async()=>{
+              setDirLoading(true); setDirError("");
+              const data = await sbFetchDirectory();
+              if(data && data.error){ setDirError(data.error); setVendorDirectory([]); }
+              else { setVendorDirectory(Array.isArray(data)?data:[]); }
+              setDirLoading(false);
+            }} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.green}`,background:"white",color:C.green,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+              {dirLoading?"⏳":"🔄"}
+            </button>
+          </div>
 
           {dirError && (
             <div style={{background:"#FEE2E2",border:"1.5px solid #DC2626",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
               <div style={{fontWeight:700,color:"#DC2626",fontSize:13}}>⚠️ Error</div>
               <div style={{fontSize:12,color:"#991B1B",marginTop:4,wordBreak:"break-word"}}>{dirError}</div>
-              <div style={{fontSize:11,color:"#991B1B",marginTop:6}}>Agar yeh "vendor_wa" column ke baare mein hai, toh Supabase SQL Editor mein supabase-add-directory.sql chalao.</div>
             </div>
           )}
 
-          {filtered.length===0 && !dirLoading && !dirError && (
+          {locationFilter==="near" && custLat && (
+            <div style={{background:"#E8F5E9",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.green,fontWeight:600}}>
+              📍 Aapke paas ke vendors dikhaye ja rahe hain — distance ke hisaab se
+            </div>
+          )}
+
+          {locationFilter==="near" && !custLat && !dirLoading && (
+            <div style={{textAlign:"center",color:C.gray,padding:"20px 0"}}>
+              <div>📍 "Near Me" dabao aur browser ko location access do</div>
+            </div>
+          )}
+
+          {displayList.length===0 && !dirLoading && !dirError && (
             <div style={{textAlign:"center",color:C.gray,padding:"30px 0"}}>
               <div style={{fontSize:36}}>🏪</div>
-              <div style={{marginTop:8,fontSize:14}}>Koi dukandaar nahi mila</div>
-              <div style={{fontSize:12,marginTop:4}}>Upar "Refresh" dabao, ya neeche number type karo</div>
+              <div style={{marginTop:8,fontSize:14}}>
+                {locationFilter==="near" ? "Aapke paas koi vendor nahi mila — 'Sab Vendors' try karo" : "Koi dukandaar nahi mila — 🔄 Refresh karo"}
+              </div>
             </div>
           )}
 
-          {filtered.map(v=>{
+          {displayList.map(v=>{
             const displayName = shopDisplayName(v.shop_name, v.shop_name_hi, v.shop_name_pa, appLang);
+            const dist = v._dist ? (v._dist < 1 ? `${Math.round(v._dist*1000)}m` : `${v._dist.toFixed(1)}km`) : null;
             return (
-            <div key={v.device_id} onClick={()=>{
-                setSelectedVendor(v);
-                setSelectedVendorName(v.shop_name||"");
-                setCustVendorWA(v.vendor_wa||"");
-                setScreen("home");
-                notify(`✅ ${displayName} select ho gaya`);
-              }}
-              style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:10,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{fontWeight:700,fontSize:15,color:C.navy}}>🏪 {displayName}</div>
-                {v.area && <div style={{fontSize:12,color:C.gray,marginTop:2}}>📍 {v.area}</div>}
-                <div style={{fontSize:11,color:C.gray,marginTop:2}}>📞 {v.vendor_wa}</div>
+              <div key={v.device_id} onClick={()=>{
+                  setSelectedVendor(v);
+                  setSelectedVendorName(v.shop_name||"");
+                  setCustVendorWA(v.vendor_wa||"");
+                  setScreen("home");
+                  notify(`✅ ${displayName} select ho gaya`);
+                }}
+                style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:10,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:15,color:C.navy}}>🏪 {displayName}</div>
+                  {v.area && <div style={{fontSize:12,color:C.gray,marginTop:2}}>📍 {v.area}</div>}
+                  <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
+                    {dist && <div style={{fontSize:11,background:C.lgreen,color:C.green,padding:"2px 8px",borderRadius:20,fontWeight:700}}>📍 {dist} door</div>}
+                    <div style={{fontSize:11,color:C.gray}}>📞 {v.vendor_wa}</div>
+                  </div>
+                </div>
+                <div style={{fontSize:18,color:C.green}}>›</div>
               </div>
-              <div style={{fontSize:18,color:C.green}}>›</div>
-            </div>
             );
           })}
         </div>
@@ -1362,6 +1460,28 @@ export default function App() {
               placeholder="ਜਿਵੇਂ: ਰਮੇਸ਼ ਫਲ ਅਤੇ ਸਬਜ਼ੀ ਭੰਡਾਰ"
               style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:14}}/>
 
+            <div style={{fontWeight:700,color:C.navy,fontSize:14,marginBottom:4}}>📍 Dukan Ki Location</div>
+            <div style={{fontSize:11,color:C.gray,marginBottom:8}}>Grahak "Near Me" se aapko dhundh sakenge</div>
+            <input
+              value={vendorArea}
+              onChange={e=>setVendorArea(e.target.value)}
+              placeholder="Area ka naam (jaise: Lajpat Nagar, Punjabi Bagh)"
+              style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:8}}/>
+            <button onClick={async()=>{
+              setLocLoading(true);
+              try {
+                const pos = await getBrowserLocation();
+                setVendorLat(pos.lat); setVendorLng(pos.lng);
+                const area = await reverseGeocode(pos.lat, pos.lng);
+                if(area){ setVendorArea(area); notify(`📍 Location mili: ${area}`); }
+                else { notify("📍 GPS mili, area naam nahi mila — aap type karo"); }
+              } catch(e){ notify(e.message,"error"); }
+              setLocLoading(false);
+            }} style={{width:"100%",padding:"10px 0",borderRadius:10,border:`1.5px solid ${C.green}`,background:"#F0FFF4",color:C.green,fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:14}}>
+              {locLoading?"📡 Dhundh raha hai...":"📡 GPS Se Location Lao (Auto)"}
+            </button>
+            {vendorLat && <div style={{fontSize:11,color:C.green,marginBottom:10}}>✅ GPS location saved: {vendorArea||"..."}</div>}
+
             <div style={{fontWeight:700,color:C.navy,fontSize:14,marginBottom:4}}>📞 Apna WhatsApp Number (Grahak ke liye)</div>
             <div style={{fontSize:11,color:C.gray,marginBottom:10}}>Yeh number Grahak ko "Dukandaar Chuno" list mein dikhega</div>
             <input
@@ -1374,9 +1494,8 @@ export default function App() {
               if(!shopName.trim()){ notify("Dukan ka naam (English) daalo","error"); return; }
               const clean = vendorOwnWA.replace(/[^0-9]/g,"");
               if(clean.length < 10){ notify("Sahi number daalo (10 digit)","error"); return; }
-              // Store with country code for WhatsApp, but don't change what vendor sees
               const numToSave = clean.length === 10 ? "91" + clean : clean;
-              const result = await sbPingVerified(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, numToSave, shopNameHi, shopNamePa);
+              const result = await sbPingVerified(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, numToSave, shopNameHi, shopNamePa, vendorArea||null, vendorLat||null, vendorLng||null);
               if(result.ok){ notify("✅ Save ho gaya! Ab aap Grahak ki list mein dikhoge"); }
               else { notify("❌ Save fail: "+(result.error||"unknown"),"error"); }
             }} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:`linear-gradient(135deg,${C.green},#25D366)`,color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
