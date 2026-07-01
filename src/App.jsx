@@ -224,6 +224,69 @@ async function sbSavePhotoUrl(deviceId, photoUrl) {
   } catch {}
 }
 
+// Sync a single rate to Supabase when vendor sets it
+async function sbSyncRate(deviceId, item, rate) {
+  if(!rate || rate<=0) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/vendor_rates`, {
+      method: "POST",
+      headers: { ...sbHeaders, "Prefer":"resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({
+        device_id:    deviceId,
+        item_id:      item.id,
+        item_name:    item.name.split("/")[0].trim(),
+        item_name_hi: item.hi || "",
+        item_name_pa: item.pa || "",
+        item_emoji:   item.emoji,
+        item_unit:    item.unit,
+        rate:         rate,
+        updated_at:   new Date().toISOString(),
+      })
+    });
+  } catch {}
+}
+
+// Fetch all vendor rates for a specific item — for comparison
+async function sbFetchItemRates(itemId) {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/vendor_rates?item_id=eq.${encodeURIComponent(itemId)}&order=rate.asc&limit=50`,
+      { headers: { "apikey":SB_KEY, "Authorization":`Bearer ${SB_KEY}` } }
+    );
+    if(!res.ok) return { error: await res.text() };
+    const rates = await res.json();
+    if(!Array.isArray(rates)) return { error:"Bad response" };
+    // Enrich with vendor info (shop name, photo, area, WA number)
+    const deviceIds = [...new Set(rates.map(r=>r.device_id))];
+    if(!deviceIds.length) return [];
+    const inList = deviceIds.map(id=>`"${id}"`).join(",");
+    const vsRes = await fetch(
+      `${SB_URL}/rest/v1/vendor_sessions?device_id=in.(${inList})&select=device_id,shop_name,shop_name_hi,shop_name_pa,photo_url,area,vendor_wa`,
+      { headers: { "apikey":SB_KEY, "Authorization":`Bearer ${SB_KEY}` } }
+    );
+    const vendors = vsRes.ok ? await vsRes.json() : [];
+    const vendorMap = {};
+    if(Array.isArray(vendors)) vendors.forEach(v=>{ vendorMap[v.device_id]=v; });
+    return rates.map(r=>({ ...r, vendor: vendorMap[r.device_id]||{} }));
+  } catch(e){ return { error:e.message||"Network error" }; }
+}
+
+// Fetch all unique items that have at least one vendor rate (for the picker)
+async function sbFetchRatedItems() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/vendor_rates?select=item_id,item_name,item_name_hi,item_name_pa,item_emoji,item_unit&order=item_name.asc`,
+      { headers: { "apikey":SB_KEY, "Authorization":`Bearer ${SB_KEY}` } }
+    );
+    if(!res.ok) return [];
+    const data = await res.json();
+    if(!Array.isArray(data)) return [];
+    // Deduplicate by item_id
+    const seen = new Set();
+    return data.filter(i=>{ if(seen.has(i.item_id)) return false; seen.add(i.item_id); return true; });
+  } catch { return []; }
+}
+
 // ─── CODE SYSTEM ──────────────────────────────────────────────────────────
 // Device fingerprint (stable per browser session)
 function getDeviceId() {
@@ -460,6 +523,11 @@ export default function App() {
   const [showEmojiPick,setShowEmojiPick]=useState(false);
   const [role,         setRole]        = useState(null);   // "vendor" | "customer" | null
   const [custList,     setCustList]    = useState([]);
+  const [compareItems, setCompareItems]= useState([]);   // items available for comparison
+  const [compareItem,  setCompareItem] = useState(null); // selected item to compare
+  const [compareRates, setCompareRates]= useState([]);   // rates from all vendors
+  const [compareLoading,setCompareLoading]=useState(false);
+  const [compareError, setCompareError]= useState("");
   const [custOwnName,  setCustOwnName] = useState("");
   const [custArea,     setCustArea]    = useState(""); // customer's area from GPS
   const [custGpsLat,   setCustGpsLat]  = useState(null);
@@ -617,7 +685,14 @@ export default function App() {
   }
 
   // ── RATES ──
-  function setRate(id,val){ setRates(p=>({...p,[id]:val})); setActiveItem(null); setCustomRate(""); }
+  function setRate(id, val){
+    setRates(p=>({...p,[id]:val}));
+    setActiveItem(null);
+    setCustomRate("");
+    // Sync to Supabase for rate comparison feature
+    const item = items.find(i=>i.id===id);
+    if(item) sbSyncRate(deviceId, item, val);
+  }
   function clearRate(id){ setRates(p=>{const n={...p};delete n[id];return n;}); }
   function removeItem(id){ setItems(p=>p.filter(i=>i.id!==id)); clearRate(id); setActiveItem(null); }
   function addCustomItem(){
@@ -1105,6 +1180,139 @@ export default function App() {
     );
   }
 
+  // ── RATE COMPARISON SCREEN ──
+  if(role==="customer" && screen==="compareRates"){
+    return (
+      <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:32}}>
+        {toast && <Toast {...toast}/>}
+        <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"16px",color:"white"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+            <button onClick={()=>setScreen("home")} style={{background:"none",border:"none",color:"white",fontSize:22,cursor:"pointer"}}>←</button>
+            <div>
+              <div style={{fontWeight:900,fontSize:18}}>📊 Rate Compare Karo</div>
+              <div style={{fontSize:12,opacity:0.8}}>Ek item chuno — sab vendors ke rates dekho</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{padding:16}}>
+          {/* Load available items button */}
+          {compareItems.length===0 && (
+            <button onClick={async()=>{
+              setCompareLoading(true); setCompareError("");
+              const data = await sbFetchRatedItems();
+              setCompareItems(Array.isArray(data)?data:[]);
+              if(!Array.isArray(data)) setCompareError("Items load nahi hue, retry karo");
+              setCompareLoading(false);
+            }} style={{width:"100%",padding:"13px 0",borderRadius:14,border:`1.5px solid ${C.green}`,background:"white",color:C.green,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:14}}>
+              {compareLoading?"⏳ Loading...":"🔄 Items Load Karo (Rates ke saath)"}
+            </button>
+          )}
+
+          {compareError && <div style={{color:"#DC2626",fontSize:12,marginBottom:10}}>{compareError}</div>}
+
+          {/* Item grid */}
+          {compareItems.length>0 && !compareItem && (
+            <>
+              <div style={{fontWeight:700,color:C.navy,marginBottom:10}}>Item chuno jiska rate compare karna hai:</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+                {compareItems.map(it=>(
+                  <button key={it.item_id} onClick={async()=>{
+                    setCompareItem(it);
+                    setCompareLoading(true); setCompareRates([]); setCompareError("");
+                    const data = await sbFetchItemRates(it.item_id);
+                    if(data && data.error){ setCompareError(data.error); setCompareLoading(false); return; }
+                    setCompareRates(Array.isArray(data)?data:[]);
+                    setCompareLoading(false);
+                  }} style={{background:"white",border:`1.5px solid ${C.lgray}`,borderRadius:12,padding:"10px 4px",cursor:"pointer",textAlign:"center"}}>
+                    <div style={{fontSize:24}}>{it.item_emoji}</div>
+                    <div style={{fontSize:11,fontWeight:700,color:C.navy,marginTop:3,lineHeight:1.2}}>
+                      {appLang==="hi"&&it.item_name_hi ? it.item_name_hi : appLang==="pa"&&it.item_name_pa ? it.item_name_pa : it.item_name}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Comparison results */}
+          {compareItem && (
+            <>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                <button onClick={()=>{setCompareItem(null);setCompareRates([]);}} style={{background:"none",border:"none",fontSize:20,cursor:"pointer"}}>←</button>
+                <div style={{fontWeight:800,fontSize:16,color:C.navy}}>
+                  {compareItem.item_emoji} {appLang==="hi"&&compareItem.item_name_hi ? compareItem.item_name_hi : appLang==="pa"&&compareItem.item_name_pa ? compareItem.item_name_pa : compareItem.item_name}
+                </div>
+                <div style={{fontSize:12,color:C.gray}}>per {compareItem.item_unit}</div>
+              </div>
+
+              {compareLoading && <div style={{textAlign:"center",color:C.gray,padding:"20px 0"}}>⏳ Rates dhundh rahe hain...</div>}
+
+              {!compareLoading && compareRates.length===0 && (
+                <div style={{textAlign:"center",color:C.gray,padding:"30px 0"}}>
+                  <div style={{fontSize:36}}>😔</div>
+                  <div style={{marginTop:8}}>Kisi vendor ne is item ka rate set nahi kiya abhi</div>
+                </div>
+              )}
+
+              {compareRates.length>0 && (
+                <>
+                  {/* Best deal banner */}
+                  <div style={{background:C.lgreen,borderRadius:14,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{fontSize:24}}>🏆</div>
+                    <div>
+                      <div style={{fontSize:11,color:C.green,fontWeight:700}}>Sabse Sasta</div>
+                      <div style={{fontWeight:900,fontSize:18,color:C.navy}}>₹{compareRates[0].rate}/{compareItem.item_unit}</div>
+                      <div style={{fontSize:12,color:C.gray}}>{shopDisplayName(compareRates[0].vendor?.shop_name||"",compareRates[0].vendor?.shop_name_hi||"",compareRates[0].vendor?.shop_name_pa||"",appLang)||"Unknown Vendor"}</div>
+                    </div>
+                  </div>
+
+                  {/* All rates sorted cheapest first */}
+                  {compareRates.map((r,i)=>{
+                    const vName = shopDisplayName(r.vendor?.shop_name||"",r.vendor?.shop_name_hi||"",r.vendor?.shop_name_pa||"",appLang)||"Unknown Vendor";
+                    const diff = i===0 ? null : ((r.rate - compareRates[0].rate) / compareRates[0].rate * 100).toFixed(0);
+                    return (
+                      <div key={r.device_id+r.item_id} style={{background:"white",borderRadius:14,padding:"12px 14px",marginBottom:10,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:12}}>
+                        {/* Rank */}
+                        <div style={{width:28,height:28,borderRadius:99,background:i===0?C.gold:C.lgray,color:i===0?"white":C.gray,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:13,flexShrink:0}}>
+                          {i+1}
+                        </div>
+                        {/* Vendor photo */}
+                        <div style={{width:42,height:42,borderRadius:10,overflow:"hidden",background:C.lgray,flexShrink:0}}>
+                          {r.vendor?.photo_url
+                            ? <img src={r.vendor.photo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                            : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🏪</div>}
+                        </div>
+                        <div style={{flex:1}}>
+                          <div style={{fontWeight:700,fontSize:14,color:C.navy}}>{vName}</div>
+                          {r.vendor?.area && <div style={{fontSize:11,color:C.gray}}>📍 {r.vendor.area}</div>}
+                        </div>
+                        <div style={{textAlign:"right"}}>
+                          <div style={{fontWeight:900,fontSize:18,color:i===0?C.green:C.navy}}>₹{r.rate}</div>
+                          {diff && <div style={{fontSize:10,color:"#DC2626",fontWeight:700}}>+{diff}% mehenga</div>}
+                        </div>
+                        {/* Select this vendor */}
+                        {r.vendor?.vendor_wa && <button onClick={()=>{
+                          setSelectedVendor({...r.vendor, vendor_wa:r.vendor.vendor_wa});
+                          setSelectedVendorName(r.vendor.shop_name||"");
+                          setCustVendorWA(r.vendor.vendor_wa||"");
+                          setScreen("home");
+                          notify(`✅ ${vName} select ho gaya`);
+                        }} style={{background:C.green,border:"none",color:"white",borderRadius:10,padding:"6px 10px",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0}}>
+                          Chuno
+                        </button>}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // ── CUSTOMER SCREEN ──
   if(role==="customer" && screen==="home"){
     const fr = items.filter(i=>i.cat==="fruit");
@@ -1150,12 +1358,16 @@ export default function App() {
               <div style={{fontSize:12,opacity:0.8,marginTop:2}}>Jo chahiye chuno, vendor ko bhejo</div>
             </div>
             <div style={{display:"flex",gap:6}}>
+              <button onClick={()=>{setCompareItem(null);setCompareRates([]);setCompareItems([]);setScreen("compareRates");}}
+                style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 10px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+                📊 Compare
+              </button>
               <button onClick={()=>setAppLang(appLang==="en"?"hi":appLang==="hi"?"pa":"en")}
                 style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 10px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
                 {appLang==="en"?"🇬🇧 EN":appLang==="hi"?"🇮🇳 हिं":"☬ ਪੰ"}
               </button>
               <button onClick={()=>{setRole(null);setCustList([]);setScreen("home");}}
-                style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 12px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>↩️ Change Role</button>
+                style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 12px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>↩️</button>
             </div>
           </div>
           <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Sabzi/fruit/saman dhoondo..."
