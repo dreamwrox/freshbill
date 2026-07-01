@@ -71,7 +71,7 @@ function distanceKm(lat1, lng1, lat2, lng2){
 }
 
 // Like sbPing but returns {ok, error} so the UI can show real success/failure
-async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth, vendorWA, shopNameHi, shopNamePa, area, lat, lng) {
+async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth, vendorWA, shopNameHi, shopNamePa, area, lat, lng, photoUrl) {
   try {
     const body = {
       last_seen:   new Date().toISOString(),
@@ -86,6 +86,7 @@ async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth,
     if(area)       body.area = area;
     if(lat)        body.lat  = lat;
     if(lng)        body.lng  = lng;
+    if(photoUrl)   body.photo_url = photoUrl;
     // First try to UPDATE the existing row (vendor already exists in DB)
     const patchRes = await fetch(`${SB_URL}/rest/v1/vendor_sessions?device_id=eq.${encodeURIComponent(deviceId)}`, {
       method: "PATCH",
@@ -189,6 +190,38 @@ async function sbFetchCustomers() {
     });
     return await res.json();
   } catch { return []; }
+}
+
+// Upload vendor photo to Supabase Storage and return public URL
+async function sbUploadPhoto(deviceId, file) {
+  try {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${deviceId}.${ext}`;
+    const res = await fetch(`${SB_URL}/storage/v1/object/vendor-photos/${path}`, {
+      method: "PUT",
+      headers: {
+        "apikey": SB_KEY,
+        "Authorization": `Bearer ${SB_KEY}`,
+        "Content-Type": file.type || "image/jpeg",
+        "x-upsert": "true",
+      },
+      body: file,
+    });
+    if(!res.ok){ const e=await res.text(); return { error:`Upload failed ${res.status}: ${e.slice(0,100)}` }; }
+    const publicUrl = `${SB_URL}/storage/v1/object/public/vendor-photos/${path}`;
+    return { url: publicUrl };
+  } catch(e){ return { error: e.message||"Upload failed" }; }
+}
+
+// Save photo URL back to vendor_sessions
+async function sbSavePhotoUrl(deviceId, photoUrl) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/vendor_sessions?device_id=eq.${encodeURIComponent(deviceId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type":"application/json", "apikey":SB_KEY, "Authorization":`Bearer ${SB_KEY}`, "Prefer":"return=minimal" },
+      body: JSON.stringify({ photo_url: photoUrl })
+    });
+  } catch {}
 }
 
 // ─── CODE SYSTEM ──────────────────────────────────────────────────────────
@@ -401,6 +434,8 @@ export default function App() {
   const [showAdmin,    setShowAdmin]   = useState(false);
   const [shopSetup,    setShopSetup]   = useState(false); // true = vendor has set their name
   const [vendorOwnWA,  setVendorOwnWA] = useState("");
+  const [vendorPhotoUrl,setVendorPhotoUrl]=useState(""); // saved photo URL
+  const [photoUploading,setPhotoUploading]=useState(false);
   const [vendorArea,   setVendorArea]  = useState("");   // vendor's area text
   const [vendorLat,    setVendorLat]   = useState(null); // vendor GPS lat
   const [vendorLng,    setVendorLng]   = useState(null); // vendor GPS lng
@@ -460,7 +495,8 @@ export default function App() {
         if(d.shopNamePa)setShopNamePa(d.shopNamePa);
         if(d.appLang)   setAppLang(d.appLang);
         if(d.shopSetup) setShopSetup(d.shopSetup);
-        if(d.vendorOwnWA) setVendorOwnWA(d.vendorOwnWA);
+        if(d.vendorOwnWA)   setVendorOwnWA(d.vendorOwnWA);
+        if(d.vendorPhotoUrl)setVendorPhotoUrl(d.vendorPhotoUrl);
         if(d.vendorArea)  setVendorArea(d.vendorArea);
         if(d.vendorLat)   setVendorLat(d.vendorLat);
         if(d.vendorLng)   setVendorLng(d.vendorLng);
@@ -515,8 +551,8 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorArea,vendorLat,vendorLng,selectedVendorName});
-  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorArea,vendorLat,vendorLng,selectedVendorName,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorPhotoUrl,vendorArea,vendorLat,vendorLng,selectedVendorName});
+  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorPhotoUrl,vendorArea,vendorLat,vendorLng,selectedVendorName,screen]);
 
   // ── RE-PING SUPABASE when shop name changes ──
   useEffect(()=>{
@@ -728,7 +764,7 @@ export default function App() {
           {/* ── LIVE VENDOR DASHBOARD ── */}
           <Card>
             {/* Tab switcher */}
-            <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <div style={{display:"flex",gap:8,marginBottom:10}}>
               <button onClick={()=>setDashTab("vendors")}
                 style={{flex:1,padding:"8px 0",borderRadius:10,border:"none",background:dashTab==="vendors"?C.navy:"#E8F5E9",color:dashTab==="vendors"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
                 🏪 Vendors ({vendorList.length})
@@ -748,6 +784,13 @@ export default function App() {
               </button>
             </div>
 
+            {/* Location search filter */}
+            <input
+              value={rateSearch}
+              onChange={e=>setRateSearch(e.target.value)}
+              placeholder="📍 Location filter: Delhi, Chandigarh Sector 12..."
+              style={{width:"100%",padding:"9px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:13,boxSizing:"border-box",outline:"none",marginBottom:12}}/>
+
             {/* VENDORS TAB */}
             {dashTab==="vendors" && (<>
               {vendorList.length===0 && !vendorLoading && (
@@ -755,13 +798,20 @@ export default function App() {
                   Refresh dabao — sab vendors ki list aayegi
                 </div>
               )}
-              {vendorList.map((v)=>{
+              {vendorList.filter(v=>!rateSearch.trim()||(v.area||"").toLowerCase().includes(rateSearch.toLowerCase())||(v.shop_name||"").toLowerCase().includes(rateSearch.toLowerCase())).map((v)=>{
                 const diffH = Math.floor((new Date()-new Date(v.last_seen))/3600000);
                 const when = diffH<1?"Just now":diffH<24?`${diffH}h ago`:`${Math.floor(diffH/24)}d ago`;
                 const isActive = diffH < 48;
                 const mapsUrl = v.lat && v.lng ? `https://www.google.com/maps?q=${v.lat},${v.lng}` : v.area ? `https://www.google.com/maps/search/${encodeURIComponent(v.area)}` : null;
                 return (
-                  <div key={v.device_id} style={{borderBottom:`1px solid ${C.lgray}`,padding:"10px 0"}}>
+                  <div key={v.device_id} style={{borderBottom:`1px solid ${C.lgray}`,padding:"10px 0",display:"flex",gap:10,alignItems:"flex-start"}}>
+                    {/* Photo thumbnail */}
+                    <div style={{width:42,height:42,borderRadius:8,overflow:"hidden",background:C.lgray,flexShrink:0}}>
+                      {v.photo_url
+                        ? <img src={v.photo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                        : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🏪</div>}
+                    </div>
+                    <div style={{flex:1}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div style={{fontWeight:700,fontSize:13,color:C.navy}}>{v.shop_name||"Unknown Shop"}</div>
                       <div style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:20,background:isActive?"#E8F5E9":"#FEE2E2",color:isActive?C.green:"#DC2626"}}>
@@ -783,6 +833,7 @@ export default function App() {
                         </a>}
                       </div>
                     )}
+                    </div>
                   </div>
                 );
               })}
@@ -802,7 +853,7 @@ export default function App() {
                   Refresh dabao — sab grahak ki list aayegi
                 </div>
               )}
-              {customerList.map((c)=>{
+              {customerList.filter(c=>!rateSearch.trim()||(c.area||"").toLowerCase().includes(rateSearch.toLowerCase())||(c.cust_name||"").toLowerCase().includes(rateSearch.toLowerCase())).map((c)=>{
                 const diffH = Math.floor((new Date()-new Date(c.last_seen))/3600000);
                 const when = diffH<1?"Just now":diffH<24?`${diffH}h ago`:`${Math.floor(diffH/24)}d ago`;
                 const isActive = diffH < 48;
@@ -952,8 +1003,11 @@ export default function App() {
             <button onClick={()=>setScreen("home")} style={{background:"none",border:"none",color:"white",fontSize:22,cursor:"pointer"}}>←</button>
             <div style={{fontWeight:900,fontSize:18}}>🏪 Dukandaar Chuno</div>
           </div>
-          <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Naam ya area dhoondo..."
-            style={{width:"100%",padding:"11px 14px",borderRadius:12,border:"none",fontSize:14,boxSizing:"border-box",outline:"none"}}/>
+          <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Naam, area, ya city type karo..."
+            style={{width:"100%",padding:"11px 14px",borderRadius:12,border:"none",fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:4}}/>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",paddingBottom:4}}>
+            jaise: "Chandigarh Sector 12", "Delhi Rohini", "Punjabi Bagh"
+          </div>
         </div>
 
         <div style={{padding:16}}>
@@ -1027,11 +1081,17 @@ export default function App() {
                   setScreen("home");
                   notify(`✅ ${displayName} select ho gaya`);
                 }}
-                style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:10,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:10,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",display:"flex",gap:12,alignItems:"center"}}>
+                {/* Vendor photo */}
+                <div style={{width:56,height:56,borderRadius:12,overflow:"hidden",background:C.lgray,flexShrink:0}}>
+                  {v.photo_url
+                    ? <img src={v.photo_url} alt={displayName} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>🏪</div>}
+                </div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:15,color:C.navy}}>🏪 {displayName}</div>
+                  <div style={{fontWeight:700,fontSize:15,color:C.navy}}>{displayName}</div>
                   {v.area && <div style={{fontSize:12,color:C.gray,marginTop:2}}>📍 {v.area}</div>}
-                  <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
+                  <div style={{display:"flex",gap:8,marginTop:4,flexWrap:"wrap"}}>
                     {dist && <div style={{fontSize:11,background:C.lgreen,color:C.green,padding:"2px 8px",borderRadius:20,fontWeight:700}}>📍 {dist} door</div>}
                     <div style={{fontSize:11,color:C.gray}}>📞 {v.vendor_wa}</div>
                   </div>
@@ -1478,8 +1538,38 @@ export default function App() {
             </div>
           </div>
 
-          {/* Customer Directory Listing — vendor's own WhatsApp number + multilingual name */}
+          {/* Customer Directory Listing — vendor profile card */}
           <div style={{background:"white",borderRadius:16,padding:"14px 16px",marginBottom:14,boxShadow:"0 1px 8px rgba(0,0,0,0.06)"}}>
+            <div style={{fontWeight:700,color:C.navy,fontSize:14,marginBottom:4}}>📸 Dukan Ki Photo</div>
+            <div style={{fontSize:11,color:C.gray,marginBottom:10}}>Grahak ko aapki dukan dikhe directory mein</div>
+
+            {/* Photo preview + upload */}
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
+              <div style={{width:72,height:72,borderRadius:14,overflow:"hidden",background:C.lgray,flexShrink:0,border:`2px solid ${C.lgray}`}}>
+                {vendorPhotoUrl
+                  ? <img src={vendorPhotoUrl} alt="shop" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>🏪</div>}
+              </div>
+              <div style={{flex:1}}>
+                <label style={{display:"block",width:"100%",padding:"10px 0",borderRadius:10,border:`1.5px dashed ${C.green}`,background:"#F0FFF4",color:C.green,fontWeight:700,fontSize:13,cursor:"pointer",textAlign:"center"}}>
+                  {photoUploading?"⏳ Upload ho raha hai...":"📷 Photo Chuno"}
+                  <input type="file" accept="image/*" style={{display:"none"}} onChange={async(e)=>{
+                    const file=e.target.files?.[0]; if(!file) return;
+                    if(file.size > 2*1024*1024){ notify("Photo 2MB se chhoti honi chahiye","error"); return; }
+                    setPhotoUploading(true);
+                    const result = await sbUploadPhoto(deviceId, file);
+                    if(result.error){ notify("❌ "+result.error,"error"); }
+                    else {
+                      setVendorPhotoUrl(result.url);
+                      await sbSavePhotoUrl(deviceId, result.url);
+                      notify("✅ Photo upload ho gayi!");
+                    }
+                    setPhotoUploading(false);
+                  }}/>
+                </label>
+                {vendorPhotoUrl && <div style={{fontSize:10,color:C.gray,marginTop:4,textAlign:"center"}}>Photo saved ✓</div>}
+              </div>
+            </div>
             <div style={{fontWeight:700,color:C.navy,fontSize:14,marginBottom:4}}>🏪 Dukan Ka Naam — English, Hindi, Punjabi</div>
             <div style={{fontSize:11,color:C.gray,marginBottom:10}}>Grahak ki bhasha ke hisaab se naam dikhega</div>
 
@@ -1539,7 +1629,7 @@ export default function App() {
               const clean = vendorOwnWA.replace(/[^0-9]/g,"");
               if(clean.length < 10){ notify("Sahi number daalo (10 digit)","error"); return; }
               const numToSave = clean.length === 10 ? "91" + clean : clean;
-              const result = await sbPingVerified(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, numToSave, shopNameHi, shopNamePa, vendorArea||null, vendorLat||null, vendorLng||null);
+              const result = await sbPingVerified(deviceId, shopName, trialStart, !!paidMonth, paidMonth||null, numToSave, shopNameHi, shopNamePa, vendorArea||null, vendorLat||null, vendorLng||null, vendorPhotoUrl||null);
               if(result.ok){ notify("✅ Save ho gaya! Ab aap Grahak ki list mein dikhoge"); }
               else { notify("❌ Save fail: "+(result.error||"unknown"),"error"); }
             }} style={{width:"100%",padding:"12px 0",borderRadius:10,border:"none",background:`linear-gradient(135deg,${C.green},#25D366)`,color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
