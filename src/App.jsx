@@ -153,18 +153,22 @@ async function sbFetchVendors() {
   } catch { return []; }
 }
 
-async function sbCustomerPing(deviceId, custName, vendorWA) {
+async function sbCustomerPing(deviceId, custName, vendorWA, area, lat, lng) {
   if(!custName || custName==="Unknown") return;
   try {
+    const body = {
+      device_id: deviceId,
+      last_seen: new Date().toISOString(),
+      cust_name: custName,
+      vendor_wa: vendorWA || null,
+    };
+    if(area) body.area = area;
+    if(lat)  body.lat  = lat;
+    if(lng)  body.lng  = lng;
     await fetch(`${SB_URL}/rest/v1/customer_sessions`, {
       method: "POST",
       headers: { ...sbHeaders, "Prefer":"resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({
-        device_id: deviceId,
-        last_seen: new Date().toISOString(),
-        cust_name: custName,
-        vendor_wa: vendorWA || null,
-      })
+      body: JSON.stringify(body)
     });
   } catch {}
 }
@@ -422,6 +426,9 @@ export default function App() {
   const [role,         setRole]        = useState(null);   // "vendor" | "customer" | null
   const [custList,     setCustList]    = useState([]);
   const [custOwnName,  setCustOwnName] = useState("");
+  const [custArea,     setCustArea]    = useState(""); // customer's area from GPS
+  const [custGpsLat,   setCustGpsLat]  = useState(null);
+  const [custGpsLng,   setCustGpsLng]  = useState(null);
   const [custVendorWA, setCustVendorWA]= useState("");
   const [custSearch,   setCustSearch]  = useState("");
   const [custSetup,    setCustSetup]   = useState(false);
@@ -462,6 +469,9 @@ export default function App() {
         // Role is NOT restored — picker shows on every app open
         if(d.custVendorWA) setCustVendorWA(d.custVendorWA);
         if(d.custOwnName)  setCustOwnName(d.custOwnName);
+        if(d.custArea)     setCustArea(d.custArea);
+        if(d.custGpsLat)   setCustGpsLat(d.custGpsLat);
+        if(d.custGpsLng)   setCustGpsLng(d.custGpsLng);
         if(d.custSetup)    setCustSetup(d.custSetup);
         if(d.selectedVendorName){
           setSelectedVendorName(d.selectedVendorName);
@@ -505,8 +515,8 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,vendorArea,vendorLat,vendorLng,selectedVendorName});
-  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,appLang,vendorOwnWA,vendorArea,vendorLat,vendorLng,selectedVendorName,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorArea,vendorLat,vendorLng,selectedVendorName});
+  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorArea,vendorLat,vendorLng,selectedVendorName,screen]);
 
   // ── RE-PING SUPABASE when shop name changes ──
   useEffect(()=>{
@@ -517,14 +527,28 @@ export default function App() {
     return ()=>clearTimeout(t);
   },[shopName, vendorOwnWA]);
 
-  // ── RE-PING SUPABASE when customer name changes ──
+  // ── RE-PING SUPABASE when customer name changes (includes location if available) ──
   useEffect(()=>{
     if(!custOwnName) return;
     const t = setTimeout(()=>{
-      sbCustomerPing(deviceId, custOwnName, custVendorWA);
+      sbCustomerPing(deviceId, custOwnName, custVendorWA, custArea||null, custGpsLat||null, custGpsLng||null);
     }, 1200);
     return ()=>clearTimeout(t);
   },[custOwnName]);
+
+  // ── AUTO-DETECT CUSTOMER LOCATION silently when they open the app ──
+  useEffect(()=>{
+    if(role!=="customer" || !custOwnName || custGpsLat) return; // skip if already have location
+    (async()=>{
+      try {
+        const pos = await getBrowserLocation();
+        setCustGpsLat(pos.lat); setCustGpsLng(pos.lng);
+        const area = await reverseGeocode(pos.lat, pos.lng);
+        if(area) setCustArea(area);
+        sbCustomerPing(deviceId, custOwnName, custVendorWA, area||null, pos.lat, pos.lng);
+      } catch {} // silent — don't bother user if they deny location
+    })();
+  },[role, custOwnName]);
 
   // ── WELCOME MESSAGE for returning users ──
   useEffect(()=>{
@@ -735,6 +759,7 @@ export default function App() {
                 const diffH = Math.floor((new Date()-new Date(v.last_seen))/3600000);
                 const when = diffH<1?"Just now":diffH<24?`${diffH}h ago`:`${Math.floor(diffH/24)}d ago`;
                 const isActive = diffH < 48;
+                const mapsUrl = v.lat && v.lng ? `https://www.google.com/maps?q=${v.lat},${v.lng}` : v.area ? `https://www.google.com/maps/search/${encodeURIComponent(v.area)}` : null;
                 return (
                   <div key={v.device_id} style={{borderBottom:`1px solid ${C.lgray}`,padding:"10px 0"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -749,6 +774,15 @@ export default function App() {
                       <span>⏰ {when}</span>
                       <span>{v.is_paid?"💚 Paid":"🔓 Trial"}</span>
                     </div>
+                    {(v.area || v.lat) && (
+                      <div style={{marginTop:4,display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:11,color:C.green}}>📍 {v.area||"GPS saved"}</span>
+                        {mapsUrl && <a href={mapsUrl} target="_blank" rel="noreferrer"
+                          style={{fontSize:10,background:C.lgreen,color:C.green,padding:"1px 7px",borderRadius:20,fontWeight:700,textDecoration:"none"}}>
+                          Map mein dekho ›
+                        </a>}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -772,6 +806,7 @@ export default function App() {
                 const diffH = Math.floor((new Date()-new Date(c.last_seen))/3600000);
                 const when = diffH<1?"Just now":diffH<24?`${diffH}h ago`:`${Math.floor(diffH/24)}d ago`;
                 const isActive = diffH < 48;
+                const mapsUrl = c.lat && c.lng ? `https://www.google.com/maps?q=${c.lat},${c.lng}` : c.area ? `https://www.google.com/maps/search/${encodeURIComponent(c.area)}` : null;
                 return (
                   <div key={c.device_id} style={{borderBottom:`1px solid ${C.lgray}`,padding:"10px 0"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -786,6 +821,15 @@ export default function App() {
                       <span>⏰ {when}</span>
                       {c.vendor_wa && <span>📞 {c.vendor_wa}</span>}
                     </div>
+                    {(c.area || c.lat) && (
+                      <div style={{marginTop:4,display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:11,color:C.green}}>📍 {c.area||"GPS saved"}</span>
+                        {mapsUrl && <a href={mapsUrl} target="_blank" rel="noreferrer"
+                          style={{fontSize:10,background:C.lgreen,color:C.green,padding:"1px 7px",borderRadius:20,fontWeight:700,textDecoration:"none"}}>
+                          Map mein dekho ›
+                        </a>}
+                      </div>
+                    )}
                   </div>
                 );
               })}
