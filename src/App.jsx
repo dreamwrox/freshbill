@@ -109,6 +109,72 @@ async function sbPingVerified(deviceId, shopName, trialStart, isPaid, paidMonth,
   } catch(e){ return { ok:false, error:e.message||"Network error" }; }
 }
 
+
+// ── LOCATION SEARCH: find ALL vendors (registered + unregistered) ─────────
+
+// Step 1: Geocode area name → lat/lng using Nominatim (free)
+async function geocodeArea(areaName) {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(areaName+", India")}&format=json&limit=1`,
+    { headers: { "Accept-Language":"en", "User-Agent":"FreshBill-App" } }
+  );
+  const data = await res.json();
+  if(!Array.isArray(data)||!data.length) return null;
+  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), label: data[0].display_name.split(",")[0] };
+}
+
+// Step 2: Find vegetable/grocery shops near lat/lng using Overpass API (free, no key)
+async function fetchOsmVendors(lat, lng) {
+  const radius = 2000;
+  const query = `[out:json][timeout:20];(node["shop"~"greengrocer|vegetables|grocery|supermarket|general"](around:${radius},${lat},${lng});node["amenity"~"marketplace|market"](around:${radius},${lat},${lng});node["name"~"sabzi|fruit|veg|kirana|grocery|mandi|fresh",i](around:${radius},${lat},${lng}););out body 50;`;
+  const res = await fetch("https://overpass-api.de/api/interpreter",{ method:"POST", body:query });
+  if(!res.ok) return [];
+  const data = await res.json();
+  return (data.elements||[]).map(e=>({
+    osm_id:   String(e.id),
+    name:     e.tags?.name||e.tags?.["name:en"]||"Unnamed Vendor",
+    lat:      e.lat, lng: e.lon,
+    type:     e.tags?.shop||e.tags?.amenity||"vendor",
+    phone:    e.tags?.phone||e.tags?.["contact:phone"]||null,
+    address:  [e.tags?.["addr:street"],e.tags?.["addr:suburb"]].filter(Boolean).join(", ")||null,
+  }));
+}
+
+// Step 3: Merge OSM results with registered vendors — mark which ones are in the app
+function mergeVendorResults(osmPlaces, registeredVendors) {
+  const dist2d = (lat1,lng1,lat2,lng2) => Math.sqrt(Math.pow((lat1-lat2)*111000,2)+Math.pow((lng1-lng2)*111000*Math.cos(lat1*Math.PI/180),2));
+  const used = new Set();
+  const out = [];
+
+  osmPlaces.forEach(place=>{
+    // Find matching registered vendor by GPS proximity (<200m) or name similarity
+    const match = registeredVendors.find(v=>{
+      if(used.has(v.device_id)) return false;
+      if(v.lat&&v.lng&&place.lat&&place.lng && dist2d(v.lat,v.lng,place.lat,place.lng)<200) return true;
+      if(v.shop_name&&place.name){
+        const a=v.shop_name.toLowerCase().split(" ")[0], b=place.name.toLowerCase().split(" ")[0];
+        return a.length>3 && b.length>3 && (a.includes(b)||b.includes(a));
+      }
+      return false;
+    });
+    if(match) used.add(match.device_id);
+    out.push({ ...place, registered:!!match, vendor:match||null });
+  });
+
+  // Add registered vendors not matched to any OSM place
+  registeredVendors.forEach(v=>{
+    if(!used.has(v.device_id)){
+      out.push({ osm_id:"reg_"+v.device_id, name:v.shop_name||"Unknown Shop",
+        lat:v.lat, lng:v.lng, type:"greengrocer", phone:v.vendor_wa, address:v.area||null,
+        registered:true, vendor:v });
+      used.add(v.device_id);
+    }
+  });
+
+  // Registered vendors first, then unregistered
+  return [...out.filter(x=>x.registered), ...out.filter(x=>!x.registered)];
+}
+
 // Public directory — vendors who've set their WhatsApp number, for customers to browse
 async function sbFetchDirectory() {
   try {
@@ -499,6 +565,9 @@ export default function App() {
   const [vendorOwnWA,  setVendorOwnWA] = useState("");
   const [vendorPhotoUrl,setVendorPhotoUrl]=useState(""); // saved photo URL
   const [photoUploading,setPhotoUploading]=useState(false);
+  const [broadcastList,  setBroadcastList]  = useState([]); // [{name,number}]
+  const [broadcastInput, setBroadcastInput] = useState({name:"",number:""});
+  const [showBroadcast,  setShowBroadcast]  = useState(false);
   const [vendorArea,   setVendorArea]  = useState("");   // vendor's area text
   const [vendorLat,    setVendorLat]   = useState(null); // vendor GPS lat
   const [vendorLng,    setVendorLng]   = useState(null); // vendor GPS lng
@@ -509,6 +578,8 @@ export default function App() {
   const [selectedVendor,setSelectedVendor]=useState(null); // vendor customer picked from directory
   const [selectedVendorName,setSelectedVendorName]=useState(""); // persisted shop name shown even before directory re-fetch
   const [vendorDirectory,setVendorDirectory]=useState([]);
+  const [placesResults, setPlacesResults] = useState([]); // OSM/Google results
+  const [locationSearch,setLocationSearch]= useState("");  // typed location query
   const [dirLoading,   setDirLoading]  = useState(false);
   const [dirError,     setDirError]    = useState("");
   const [adminPass,    setAdminPass]   = useState("");
@@ -564,6 +635,7 @@ export default function App() {
         if(d.appLang)   setAppLang(d.appLang);
         if(d.shopSetup) setShopSetup(d.shopSetup);
         if(d.vendorOwnWA)   setVendorOwnWA(d.vendorOwnWA);
+        if(d.broadcastList) setBroadcastList(d.broadcastList);
         if(d.vendorPhotoUrl)setVendorPhotoUrl(d.vendorPhotoUrl);
         if(d.vendorArea)  setVendorArea(d.vendorArea);
         if(d.vendorLat)   setVendorLat(d.vendorLat);
@@ -619,8 +691,8 @@ export default function App() {
   // ── SAVE ──
   useEffect(()=>{
     if(screen==="splash"||!trialStart) return;
-    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorPhotoUrl,vendorArea,vendorLat,vendorLng,selectedVendorName});
-  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorPhotoUrl,vendorArea,vendorLat,vendorLng,selectedVendorName,screen]);
+    save("fb-data-v2",{items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorPhotoUrl,broadcastList,vendorArea,vendorLat,vendorLng,selectedVendorName});
+  },[items,rates,bills,shopName,shopNameHi,shopNamePa,shopSetup,custSetup,trialStart,paidMonth,role,custVendorWA,custOwnName,custArea,custGpsLat,custGpsLng,appLang,vendorOwnWA,vendorPhotoUrl,broadcastList,vendorArea,vendorLat,vendorLng,selectedVendorName,screen]);
 
   // ── RE-PING SUPABASE when shop name changes ──
   useEffect(()=>{
@@ -971,6 +1043,13 @@ export default function App() {
           <div style={{textAlign:"center",padding:"18px 0 8px",color:C.gray,fontSize:12}}>
             <div style={{fontWeight:700,color:C.navy}}>FreshBill v1.0</div>
             <div style={{marginTop:2}}>Designed by <b style={{color:C.green}}>JK Technologies</b> ™</div>
+            <button onClick={async()=>{
+              const shareData={ title:"FreshBill — Sabzi App", text:"FreshBill: Fruit & Sabzi ka smart app! Vendors ke rates dekho, list banao, WhatsApp par order karo.", url:"https://freshbill-delta.vercel.app" };
+              if(navigator.share){ try{ await navigator.share(shareData); } catch{} }
+              else{ try{ await navigator.clipboard.writeText("FreshBill app download karo: https://freshbill-delta.vercel.app"); notify("✅ Link copy ho gaya!"); } catch{} }
+            }} style={{marginTop:10,padding:"10px 24px",borderRadius:12,border:`1.5px solid ${C.green}`,background:"#F0FFF4",color:C.green,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+              🔗 App Share Karo
+            </button>
           </div>
         </>
       )}
@@ -1053,22 +1132,30 @@ export default function App() {
 
   // ── VENDOR PICKER (Grahak chooses a Dukandaar) ──
   if(role==="customer" && screen==="vendorPicker"){
+
+    // Build display list from either OSM+registered merge OR registered-only
     const q = custSearch.trim().toLowerCase();
+    let displayList = placesResults.length > 0
+      ? placesResults
+      : vendorDirectory.map(v=>({
+          osm_id:"reg_"+v.device_id, name:v.shop_name||"Unknown",
+          lat:v.lat, lng:v.lng, address:v.area||null, phone:v.vendor_wa,
+          registered:true, vendor:v
+        }));
 
-    // Sort and filter vendors
-    let displayList = [...vendorDirectory];
-
-    // If customer has GPS and Near Me is selected, sort by distance
-    if(locationFilter==="near" && custLat && custLng){
+    // Near Me filter (only when using registered-only list)
+    if(placesResults.length===0 && locationFilter==="near" && custLat && custLng){
       displayList = displayList
-        .filter(v => v.lat && v.lng) // only vendors with GPS
-        .map(v=>({ ...v, _dist: distanceKm(custLat, custLng, v.lat, v.lng) }))
-        .sort((a,b)=>a._dist - b._dist)
-        .slice(0, 20); // top 20 nearest
+        .filter(v=>v.lat&&v.lng)
+        .map(v=>({...v, _dist:distanceKm(custLat,custLng,v.lat,v.lng)}))
+        .sort((a,b)=>a._dist-b._dist).slice(0,20);
     }
 
-    // Text search
-    if(q) displayList = displayList.filter(v=>(v.shop_name||"").toLowerCase().includes(q)||(v.area||"").toLowerCase().includes(q));
+    // Text search across name + address
+    if(q) displayList = displayList.filter(v=>(v.name||"").toLowerCase().includes(q)||(v.address||"").toLowerCase().includes(q)||(v.vendor?.shop_name||"").toLowerCase().includes(q));
+
+    const registeredCount = displayList.filter(x=>x.registered).length;
+    const unregisteredCount = displayList.filter(x=>!x.registered).length;
 
     return (
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:24}}>
@@ -1076,105 +1163,173 @@ export default function App() {
         <div style={{background:`linear-gradient(135deg,${C.navy},${C.green})`,padding:"16px",color:"white"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <button onClick={()=>setScreen("home")} style={{background:"none",border:"none",color:"white",fontSize:22,cursor:"pointer"}}>←</button>
-            <div style={{fontWeight:900,fontSize:18}}>🏪 Dukandaar Chuno</div>
+            <div>
+              <div style={{fontWeight:900,fontSize:18}}>🏪 Dukandaar Chuno</div>
+              <div style={{fontSize:11,opacity:0.8}}>Registered + sab local vendors</div>
+            </div>
           </div>
-          <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Naam, area, ya city type karo..."
-            style={{width:"100%",padding:"11px 14px",borderRadius:12,border:"none",fontSize:14,boxSizing:"border-box",outline:"none",marginBottom:4}}/>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",paddingBottom:4}}>
-            jaise: "Chandigarh Sector 12", "Delhi Rohini", "Punjabi Bagh"
+
+          {/* Location Search Bar */}
+          <div style={{display:"flex",gap:8}}>
+            <input value={locationSearch} onChange={e=>setLocationSearch(e.target.value)}
+              onKeyDown={async e=>{
+                if(e.key!=="Enter"||!locationSearch.trim()) return;
+                setDirLoading(true); setDirError(""); setPlacesResults([]);
+                try {
+                  const geo = await geocodeArea(locationSearch);
+                  if(!geo){ setDirError(`"${locationSearch}" nahi mila`); setDirLoading(false); return; }
+                  const [osmPlaces, regVendors] = await Promise.all([
+                    fetchOsmVendors(geo.lat, geo.lng),
+                    sbFetchDirectory()
+                  ]);
+                  const merged = mergeVendorResults(osmPlaces, Array.isArray(regVendors)?regVendors:[]);
+                  setPlacesResults(merged);
+                  notify(`📍 ${geo.label}: ${merged.length} vendors mile`);
+                } catch(e){ setDirError(e.message||"Search failed"); }
+                setDirLoading(false);
+              }}
+              placeholder="📍 Area type karo, Enter dabao — Lajpat Nagar, Chandigarh Sector 12..."
+              style={{flex:1,padding:"11px 14px",borderRadius:12,border:"none",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
+            <button onClick={async()=>{
+              if(!locationSearch.trim()){ notify("Area ka naam type karo","error"); return; }
+              setDirLoading(true); setDirError(""); setPlacesResults([]);
+              try {
+                const geo = await geocodeArea(locationSearch);
+                if(!geo){ setDirError(`"${locationSearch}" nahi mila`); setDirLoading(false); return; }
+                const [osmPlaces, regVendors] = await Promise.all([
+                  fetchOsmVendors(geo.lat, geo.lng),
+                  sbFetchDirectory()
+                ]);
+                const merged = mergeVendorResults(osmPlaces, Array.isArray(regVendors)?regVendors:[]);
+                setPlacesResults(merged);
+                notify(`📍 ${geo.label}: ${merged.length} vendors mile`);
+              } catch(e){ setDirError(e.message||"Search failed"); }
+              setDirLoading(false);
+            }} style={{padding:"11px 16px",borderRadius:12,border:"none",background:"rgba(255,255,255,0.25)",color:"white",fontWeight:800,fontSize:14,cursor:"pointer",whiteSpace:"nowrap"}}>
+              {dirLoading?"⏳":"🔍"}
+            </button>
+          </div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:6}}>
+            jaise: "Lajpat Nagar Delhi", "Sector 12 Chandigarh", "Punjabi Bagh"
           </div>
         </div>
 
         <div style={{padding:16}}>
 
-          {/* Location filter buttons */}
-          <div style={{display:"flex",gap:8,marginBottom:14}}>
-            <button onClick={()=>{setLocationFilter("all");setCustLat(null);setCustLng(null);}}
-              style={{flex:1,padding:"10px 0",borderRadius:10,border:"none",background:locationFilter==="all"?C.navy:"#E8F5E9",color:locationFilter==="all"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
-              🏪 Sab Vendors
-            </button>
-            <button onClick={async()=>{
-              if(custLat && locationFilter==="near"){ setLocationFilter("all"); setCustLat(null); setCustLng(null); return; }
-              notify("📡 Aapki location dhundh raha hai...");
-              try {
-                const pos = await getBrowserLocation();
-                setCustLat(pos.lat); setCustLng(pos.lng);
-                setLocationFilter("near");
-                notify("✅ Aapke paas ke vendors dikh rahe hain");
-              } catch(e){ notify(e.message,"error"); }
-            }}
-              style={{flex:1,padding:"10px 0",borderRadius:10,border:"none",background:locationFilter==="near"?C.green:"#E8F5E9",color:locationFilter==="near"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
-              {locationFilter==="near"?"📍 Near Me (ON)":"📍 Near Me"}
-            </button>
-            <button onClick={async()=>{
-              setDirLoading(true); setDirError("");
-              const data = await sbFetchDirectory();
-              if(data && data.error){ setDirError(data.error); setVendorDirectory([]); }
-              else { setVendorDirectory(Array.isArray(data)?data:[]); }
-              setDirLoading(false);
-            }} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${C.green}`,background:"white",color:C.green,fontWeight:700,fontSize:13,cursor:"pointer"}}>
-              {dirLoading?"⏳":"🔄"}
-            </button>
-          </div>
-
-          {dirError && (
-            <div style={{background:"#FEE2E2",border:"1.5px solid #DC2626",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
-              <div style={{fontWeight:700,color:"#DC2626",fontSize:13}}>⚠️ Error</div>
-              <div style={{fontSize:12,color:"#991B1B",marginTop:4,wordBreak:"break-word"}}>{dirError}</div>
+          {/* Quick filter: Near Me (when no location search) */}
+          {placesResults.length===0 && (
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <button onClick={()=>{setLocationFilter("all");setCustLat(null);setCustLng(null);setPlacesResults([]);}}
+                style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",background:locationFilter==="all"?C.navy:"#E8F5E9",color:locationFilter==="all"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                🏪 Registered Vendors
+              </button>
+              <button onClick={async()=>{
+                if(custLat&&locationFilter==="near"){ setLocationFilter("all"); setCustLat(null); setCustLng(null); return; }
+                try {
+                  const pos = await getBrowserLocation(); setCustLat(pos.lat); setCustLng(pos.lng); setLocationFilter("near");
+                  notify("✅ Aapke paas ke vendors dikh rahe hain");
+                } catch(e){ notify(e.message,"error"); }
+              }} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",background:locationFilter==="near"?C.green:"#E8F5E9",color:locationFilter==="near"?"white":C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                {locationFilter==="near"?"📍 Near Me ✓":"📍 Near Me"}
+              </button>
+              <button onClick={async()=>{
+                setDirLoading(true); setDirError("");
+                const data=await sbFetchDirectory();
+                if(data&&data.error){ setDirError(data.error); setVendorDirectory([]); }
+                else setVendorDirectory(Array.isArray(data)?data:[]);
+                setDirLoading(false);
+              }} style={{padding:"9px 14px",borderRadius:10,border:`1.5px solid ${C.green}`,background:"white",color:C.green,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                {dirLoading?"⏳":"🔄"}
+              </button>
             </div>
           )}
 
-          {locationFilter==="near" && custLat && (
-            <div style={{background:"#E8F5E9",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.green,fontWeight:600}}>
-              📍 Aapke paas ke vendors dikhaye ja rahe hain — distance ke hisaab se
+          {/* Results count + legend */}
+          {displayList.length>0 && (
+            <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap"}}>
+              {registeredCount>0 && <div style={{fontSize:12,background:C.lgreen,color:C.green,padding:"3px 10px",borderRadius:20,fontWeight:700}}>✅ {registeredCount} App mein registered</div>}
+              {unregisteredCount>0 && <div style={{fontSize:12,background:"#F3F4F6",color:"#6B7280",padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚪ {unregisteredCount} Registered nahi</div>}
             </div>
           )}
 
-          {locationFilter==="near" && !custLat && !dirLoading && (
-            <div style={{textAlign:"center",color:C.gray,padding:"20px 0"}}>
-              <div>📍 "Near Me" dabao aur browser ko location access do</div>
-            </div>
+          {/* Name search within results */}
+          {displayList.length>0 && (
+            <input value={custSearch} onChange={e=>setCustSearch(e.target.value)} placeholder="🔍 Naam se filter karo..."
+              style={{width:"100%",marginBottom:12,padding:"9px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
           )}
+
+          {dirError && <div style={{background:"#FEE2E2",border:"1.5px solid #DC2626",borderRadius:12,padding:"12px 14px",marginBottom:14,fontSize:12,color:"#991B1B"}}>{dirError}</div>}
 
           {displayList.length===0 && !dirLoading && !dirError && (
-            <div style={{textAlign:"center",color:C.gray,padding:"30px 0"}}>
-              <div style={{fontSize:36}}>🏪</div>
-              <div style={{marginTop:8,fontSize:14}}>
-                {locationFilter==="near" ? "Aapke paas koi vendor nahi mila — 'Sab Vendors' try karo" : "Koi dukandaar nahi mila — 🔄 Refresh karo"}
-              </div>
+            <div style={{textAlign:"center",color:C.gray,padding:"40px 0"}}>
+              <div style={{fontSize:40}}>📍</div>
+              <div style={{marginTop:8,fontWeight:600,fontSize:14}}>Location type karo upar</div>
+              <div style={{fontSize:12,marginTop:4}}>App ke registered vendors + sab local vendors dikhenge</div>
             </div>
           )}
 
-          {displayList.map(v=>{
-            const displayName = shopDisplayName(v.shop_name, v.shop_name_hi, v.shop_name_pa, appLang);
-            const dist = v._dist ? (v._dist < 1 ? `${Math.round(v._dist*1000)}m` : `${v._dist.toFixed(1)}km`) : null;
+          {displayList.map((v,i)=>{
+            const isReg = v.registered;
+            const vName = isReg && v.vendor
+              ? shopDisplayName(v.vendor.shop_name||v.name, v.vendor.shop_name_hi||"", v.vendor.shop_name_pa||"", appLang)
+              : v.name;
+            const dist = v._dist?(v._dist<1?`${Math.round(v._dist*1000)}m`:`${v._dist.toFixed(1)}km`):null;
+            const waNum = isReg ? v.vendor?.vendor_wa : v.phone;
+
             return (
-              <div key={v.device_id} onClick={()=>{
-                  setSelectedVendor(v);
-                  setSelectedVendorName(v.shop_name||"");
-                  setCustVendorWA(v.vendor_wa||"");
+              <div key={v.osm_id||i}
+                onClick={()=>{
+                  if(!isReg){ notify("Yeh vendor abhi app mein register nahi hai — unhe FreshBill download karao!","error"); return; }
+                  setSelectedVendor(v.vendor);
+                  setSelectedVendorName(v.vendor?.shop_name||v.name);
+                  setCustVendorWA(v.vendor?.vendor_wa||"");
                   setScreen("home");
-                  notify(`✅ ${displayName} select ho gaya`);
+                  notify(`✅ ${vName} select ho gaya`);
                 }}
-                style={{background:"white",borderRadius:14,padding:"14px 16px",marginBottom:10,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",display:"flex",gap:12,alignItems:"center"}}>
-                {/* Vendor photo */}
-                <div style={{width:56,height:56,borderRadius:12,overflow:"hidden",background:C.lgray,flexShrink:0}}>
-                  {v.photo_url
-                    ? <img src={v.photo_url} alt={displayName} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                    : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>🏪</div>}
+                style={{background:"white",borderRadius:14,padding:"12px 14px",marginBottom:10,boxShadow:"0 1px 8px rgba(0,0,0,0.06)",cursor:isReg?"pointer":"default",display:"flex",gap:12,alignItems:"center",opacity:isReg?1:0.85,border:`1.5px solid ${isReg?C.lgreen:C.lgray}`}}>
+
+                {/* Photo or placeholder */}
+                <div style={{width:50,height:50,borderRadius:12,overflow:"hidden",background:isReg?C.lgreen:"#F3F4F6",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {isReg && v.vendor?.photo_url
+                    ? <img src={v.vendor.photo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    : <div style={{fontSize:22}}>{isReg?"🏪":"📍"}</div>}
                 </div>
+
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:15,color:C.navy}}>{displayName}</div>
-                  {v.area && <div style={{fontSize:12,color:C.gray,marginTop:2}}>📍 {v.area}</div>}
-                  <div style={{display:"flex",gap:8,marginTop:4,flexWrap:"wrap"}}>
-                    {dist && <div style={{fontSize:11,background:C.lgreen,color:C.green,padding:"2px 8px",borderRadius:20,fontWeight:700}}>📍 {dist} door</div>}
-                    <div style={{fontSize:11,color:C.gray}}>📞 {v.vendor_wa}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <div style={{fontWeight:700,fontSize:14,color:C.navy}}>{vName}</div>
+                    {isReg
+                      ? <div style={{fontSize:10,background:C.green,color:"white",padding:"1px 7px",borderRadius:20,fontWeight:700}}>✅ FreshBill</div>
+                      : <div style={{fontSize:10,background:"#E5E7EB",color:"#6B7280",padding:"1px 7px",borderRadius:20,fontWeight:600}}>⚪ Registered nahi</div>}
+                  </div>
+                  {v.address && <div style={{fontSize:11,color:C.gray,marginTop:2}}>📍 {v.address}</div>}
+                  <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap"}}>
+                    {dist && <div style={{fontSize:10,background:C.lgreen,color:C.green,padding:"1px 7px",borderRadius:20,fontWeight:700}}>📍 {dist}</div>}
+                    {waNum && <div style={{fontSize:10,color:C.gray}}>📞 {waNum}</div>}
+                    {v.type && <div style={{fontSize:10,color:C.gray,textTransform:"capitalize"}}>🛒 {v.type}</div>}
                   </div>
                 </div>
-                <div style={{fontSize:18,color:C.green}}>›</div>
+
+                {isReg
+                  ? <div style={{fontSize:18,color:C.green}}>›</div>
+                  : <button onClick={e=>{ e.stopPropagation();
+                      const msg=`Namaste! Aapko FreshBill app download karna chahiye — apni dukan wahan register karo aur customers seedha aapse order kar sakenge.\n\nDownload karo: https://freshbill-delta.vercel.app`;
+                      const num=(waNum||"").replace(/[^0-9]/g,"");
+                      if(num.length>=10) window.open(`https://wa.me/${num.length===10?"91"+num:num}?text=${encodeURIComponent(msg)}`,"_blank");
+                      else notify("Is vendor ka number nahi mila","error");
+                    }} style={{background:C.green,border:"none",color:"white",borderRadius:10,padding:"6px 8px",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>
+                    App Invite Karo
+                  </button>}
               </div>
             );
           })}
+
+          {placesResults.length>0 && (
+            <button onClick={()=>{setPlacesResults([]);setLocationSearch("");setDirError("");}}
+              style={{width:"100%",padding:"11px 0",borderRadius:12,border:`1.5px dashed ${C.lgray}`,background:"white",color:C.gray,fontWeight:600,fontSize:13,cursor:"pointer",marginTop:8}}>
+              ✕ Search clear karo — sirf registered vendors dekho
+            </button>
+          )}
         </div>
       </div>
     );
@@ -1381,6 +1536,13 @@ export default function App() {
           <div style={{textAlign:"center",padding:"20px 0 10px",color:C.gray,fontSize:12}}>
             <div>👥 Total Visitors: <b style={{color:C.green}}>{visitorCount!==null?visitorCount.toLocaleString("en-IN"):"…"}</b></div>
             <div style={{marginTop:6}}>Designed by <b style={{color:C.green}}>JK Technologies</b> ™</div>
+            <button onClick={async()=>{
+              const shareData={ title:"FreshBill — Sabzi App", text:"FreshBill: Fruit, Sabzi aur Grocery ka smart app! Vendors ke rates dekho, compare karo, WhatsApp par order karo.", url:"https://freshbill-delta.vercel.app" };
+              if(navigator.share){ try{ await navigator.share(shareData); } catch{} }
+              else{ try{ await navigator.clipboard.writeText("FreshBill app: https://freshbill-delta.vercel.app"); notify("Link copy ho gaya!"); } catch{} }
+            }} style={{marginTop:10,padding:"9px 22px",borderRadius:12,border:`1.5px solid ${C.green}`,background:"#F0FFF4",color:C.green,fontWeight:700,fontSize:12,cursor:"pointer"}}>
+              🔗 App Share Karo
+            </button>
           </div>
         </div>
 
@@ -1947,23 +2109,133 @@ export default function App() {
 
           {ratedItems.length>0 && (
             <Card style={{marginTop:4}}>
-              <div style={{fontWeight:700,color:C.navy,marginBottom:10}}>📢 Aaj ke Rates WhatsApp pe bhejo</div>
-              <button onClick={()=>{
-                let m=`🛒 *${shopName}*\n📅 Aaj ke Rates — ${todayStr()}\n\n`;
-                const f=ratedItems.filter(i=>i.cat==="fruit"); const v=ratedItems.filter(i=>i.cat==="veggie"); const g=ratedItems.filter(i=>i.cat==="grocery");
-                if(f.length){m+="*🍎 Fruits / Phal:*\n";f.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
-                if(v.length){m+="*🥦 Sabzi:*\n";v.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
-                if(g.length){m+="*🛒 Groceries:*\n";g.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
-                m+="📲 _Order ke liye reply karein!_";
-                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(m)}`,"_blank");
-              }} style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:15,cursor:"pointer"}}>
-                📲 Rates Bhejo ({ratedItems.length} items)
-              </button>
+              <div style={{fontWeight:700,color:C.navy,marginBottom:10}}>📢 Rates Bhejo</div>
+
+              {/* Build message helper */}
+              {(()=>{
+                const buildMsg = ()=>{
+                  let m=`🛒 *${shopName}*\n📅 Aaj ke Rates — ${todayStr()}\n\n`;
+                  const f=ratedItems.filter(i=>i.cat==="fruit"); const v=ratedItems.filter(i=>i.cat==="veggie"); const g=ratedItems.filter(i=>i.cat==="grocery");
+                  if(f.length){m+="*Fruits / Phal:*\n";f.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
+                  if(v.length){m+="*Sabzi:*\n";v.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
+                  if(g.length){m+="*Groceries:*\n";g.forEach(i=>{m+=`${i.emoji} ${i.name.split("/")[0].trim()} — ${inr(rates[i.id])}/${i.unit}\n`;});m+="\n";}
+                  m+="Order ke liye reply karein!";
+                  return m;
+                };
+
+                return (<>
+                  {/* Row 1: Quick single send + Copy */}
+                  <div style={{display:"flex",gap:8,marginBottom:8}}>
+                    <button onClick={()=>{ window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(buildMsg())}`,"_blank"); }}
+                      style={{flex:2,padding:"12px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
+                      📲 WhatsApp par Bhejo
+                    </button>
+                    <button onClick={async()=>{
+                      try{ await navigator.clipboard.writeText(buildMsg()); notify("✅ Message copy ho gaya — WhatsApp Broadcast mein paste karo!"); }
+                      catch{ notify("Copy nahi hua — manually select karo","error"); }
+                    }} style={{flex:1,padding:"12px 0",borderRadius:12,border:`1.5px solid ${C.lgray}`,background:"white",color:C.navy,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                      📋 Copy
+                    </button>
+                  </div>
+
+                  {/* Row 2: Native Share (works on phone) */}
+                  <button onClick={async()=>{
+                    const msg = buildMsg();
+                    if(navigator.share){ try{ await navigator.share({ title:`${shopName} — Aaj ke Rates`, text:msg }); } catch{} }
+                    else{ try{ await navigator.clipboard.writeText(msg); notify("✅ Message copy ho gaya!"); } catch{ notify("Share nahi hua","error"); } }
+                  }} style={{width:"100%",padding:"11px 0",borderRadius:12,border:`1.5px solid ${C.lgreen}`,background:"#F0FFF4",color:C.green,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:8}}>
+                    🔗 Share (WhatsApp, SMS, ya copy)
+                  </button>
+
+                  {/* Row 3: Broadcast to saved list */}
+                  <button onClick={()=>setShowBroadcast(b=>!b)}
+                    style={{width:"100%",padding:"11px 0",borderRadius:12,border:`1.5px solid ${C.navy}`,background:showBroadcast?"#EEF2FF":"white",color:C.navy,fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                    📋 Broadcast List ({broadcastList.length} contacts) {showBroadcast?"▲":"▼"}
+                  </button>
+
+                  {/* Broadcast panel */}
+                  {showBroadcast && (
+                    <div style={{marginTop:10,background:"#F8FAFC",borderRadius:12,padding:"12px"}}>
+                      <div style={{fontSize:12,color:C.gray,marginBottom:10}}>
+                        Contacts save karo — phir ek click mein sab ko rates bhejo
+                      </div>
+
+                      {/* Existing contacts */}
+                      {broadcastList.map((c,i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,background:"white",borderRadius:10,padding:"8px 12px"}}>
+                          <div style={{flex:1}}>
+                            <div style={{fontWeight:600,fontSize:13,color:C.navy}}>{c.name}</div>
+                            <div style={{fontSize:11,color:C.gray}}>{c.number}</div>
+                          </div>
+                          <button onClick={()=>{
+                            const num=c.number.replace(/[^0-9]/g,"");
+                            const n=num.length===10?"91"+num:num;
+                            window.open(`https://wa.me/${n}?text=${encodeURIComponent(buildMsg())}`,"_blank");
+                          }} style={{background:"#25D366",border:"none",color:"white",borderRadius:8,padding:"5px 10px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                            Send
+                          </button>
+                          <button onClick={()=>setBroadcastList(p=>p.filter((_,j)=>j!==i))}
+                            style={{background:"#FEE2E2",border:"none",color:"#DC2626",borderRadius:8,padding:"5px 8px",fontSize:12,cursor:"pointer"}}>✕</button>
+                        </div>
+                      ))}
+
+                      {/* Send to all */}
+                      {broadcastList.length>1 && (
+                        <button onClick={async()=>{
+                          const msg=buildMsg();
+                          for(const c of broadcastList){
+                            const num=c.number.replace(/[^0-9]/g,"");
+                            const n=num.length===10?"91"+num:num;
+                            window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`,"_blank");
+                            await new Promise(r=>setTimeout(r,800));
+                          }
+                          notify(`📢 ${broadcastList.length} logo ko rates bheje gaye`);
+                        }} style={{width:"100%",padding:"11px 0",borderRadius:10,border:"none",background:"linear-gradient(135deg,#128C7E,#25D366)",color:"white",fontWeight:800,fontSize:14,cursor:"pointer",marginBottom:10}}>
+                          📢 Sab ko Bhejo ({broadcastList.length} contacts)
+                        </button>
+                      )}
+
+                      {/* Copy all message for WhatsApp Broadcast */}
+                      <button onClick={async()=>{
+                        try{ await navigator.clipboard.writeText(buildMsg()); notify("✅ Message copy hua! WhatsApp → Broadcast Lists → message paste karo"); }
+                        catch{ notify("Copy failed","error"); }
+                      }} style={{width:"100%",padding:"10px 0",borderRadius:10,border:`1.5px dashed ${C.gray}`,background:"white",color:C.gray,fontWeight:600,fontSize:12,cursor:"pointer",marginBottom:10}}>
+                        📋 WhatsApp Broadcast ke liye Copy Karo
+                      </button>
+
+                      {/* Add new contact */}
+                      <div style={{borderTop:`1px solid ${C.lgray}`,paddingTop:10,marginTop:4}}>
+                        <div style={{fontSize:12,fontWeight:700,color:C.navy,marginBottom:6}}>Naya Contact Add Karo</div>
+                        <input value={broadcastInput.name} onChange={e=>setBroadcastInput(p=>({...p,name:e.target.value}))}
+                          placeholder="Naam (jaise: Priya, Colony B)" style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.lgray}`,fontSize:13,boxSizing:"border-box",outline:"none",marginBottom:6}}/>
+                        <input value={broadcastInput.number} onChange={e=>setBroadcastInput(p=>({...p,number:e.target.value.replace(/[^0-9]/g,"")}))}
+                          placeholder="WhatsApp number (10 digit)" type="tel"
+                          style={{width:"100%",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${C.lgray}`,fontSize:13,boxSizing:"border-box",outline:"none",marginBottom:8}}/>
+                        <button onClick={()=>{
+                          if(!broadcastInput.number||broadcastInput.number.length<10){ notify("Sahi number daalo","error"); return; }
+                          setBroadcastList(p=>[...p,{name:broadcastInput.name||broadcastInput.number,number:broadcastInput.number}]);
+                          setBroadcastInput({name:"",number:""});
+                          notify("✅ Contact add ho gaya!");
+                        }} style={{width:"100%",padding:"10px 0",borderRadius:8,border:"none",background:C.navy,color:"white",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                          + Add Contact
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>);
+              })()}
             </Card>
           )}
           <div style={{textAlign:"center",padding:"18px 0 8px",color:C.gray,fontSize:12}}>
             <div>👥 Total Visitors: <b style={{color:C.green}}>{visitorCount!==null?visitorCount.toLocaleString("en-IN"):"…"}</b></div>
             <div style={{marginTop:6}}>Designed by <b style={{color:C.green}}>JK Technologies</b> ™</div>
+            <button onClick={async()=>{
+              const shareData={ title:"FreshBill — Sabzi App", text:"FreshBill: Fruit, Sabzi aur Grocery ka smart app! Vendors ke rates dekho, compare karo, WhatsApp par order karo.", url:"https://freshbill-delta.vercel.app" };
+              if(navigator.share){ try{ await navigator.share(shareData); } catch{} }
+              else{ try{ await navigator.clipboard.writeText("FreshBill app: https://freshbill-delta.vercel.app"); notify("Link copy ho gaya!"); } catch{} }
+            }} style={{marginTop:10,padding:"9px 22px",borderRadius:12,border:`1.5px solid ${C.green}`,background:"#F0FFF4",color:C.green,fontWeight:700,fontSize:12,cursor:"pointer"}}>
+              🔗 App Share Karo
+            </button>
           </div>
         </div>
       )}
