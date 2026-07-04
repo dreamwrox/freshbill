@@ -489,6 +489,33 @@ const DEFAULT_ITEMS = [
   { id:"detergent",    name:"Detergent / Washing Powder",emoji:"🫧", hi:"डिटर्जेंट", pa:"ਡਿਟਰਜੈਂਟ", cat:"grocery", unit:"kg" },
   { id:"matchbox",     name:"Matchbox / Maachis",       emoji:"🔥", hi:"माचिस", pa:"ਮਾਚਿਸ", cat:"grocery", unit:"piece" },
   { id:"agarbatti",    name:"Agarbatti / Incense",      emoji:"🕯️", hi:"अगरबत्ती", pa:"ਅਗਰਬੱਤੀ", cat:"grocery", unit:"packet" },
+
+  // ── MISSING VEGETABLES (added) ──
+  { id:"lotusstem",    name:"Lotus Stem / Kamal Kakdi", emoji:"🪷", hi:"कमल ककड़ी", pa:"ਕਮਲ ਕੱਕੜੀ", cat:"veggie", unit:"kg" },
+  { id:"ladyfinger",   name:"Lady Finger / Bhindi",     emoji:"🟢", hi:"भिंडी", pa:"ਭਿੰਡੀ", cat:"veggie", unit:"kg" },
+  { id:"jackfruit",    name:"Jackfruit / Kathal",       emoji:"🟡", hi:"कटहल", pa:"ਕਟਹਲ", cat:"veggie", unit:"kg" },
+  { id:"gwarphali",    name:"Cluster Beans / Gwar",     emoji:"🟢", hi:"ग्वार फली", pa:"ਗਵਾਰ ਫਲੀ", cat:"veggie", unit:"kg" },
+  { id:"chichinda",    name:"Snake Gourd / Chichinda",  emoji:"🟢", hi:"चिचिंडा", pa:"ਚਿਚਿੰਡਾ", cat:"veggie", unit:"kg" },
+  { id:"ashgourd",     name:"Ash Gourd / Petha",        emoji:"🟢", hi:"पेठा", pa:"ਪੇਠਾ", cat:"veggie", unit:"kg" },
+  { id:"rawbanana",    name:"Raw Banana / Kacha Kela",  emoji:"🍌", hi:"कच्चा केला", pa:"ਕੱਚਾ ਕੇਲਾ", cat:"veggie", unit:"kg" },
+  { id:"rawpapaya",    name:"Raw Papaya / Kacha Papita",emoji:"🟢", hi:"कच्चा पपीता", pa:"ਕੱਚਾ ਪਪੀਤਾ", cat:"veggie", unit:"kg" },
+  { id:"kundru",       name:"Ivy Gourd / Kundru",       emoji:"🟢", hi:"कुंदरू", pa:"ਕੁੰਦਰੂ", cat:"veggie", unit:"kg" },
+  { id:"amaranth",     name:"Amaranth / Chaulai",       emoji:"🌿", hi:"चौराई", pa:"ਚੌਲਾਈ", cat:"veggie", unit:"bunch" },
+  { id:"bathhua",      name:"Goosefoot / Bathhua",      emoji:"🌿", hi:"बथुआ", pa:"ਬਥੂਆ", cat:"veggie", unit:"bunch" },
+  { id:"sarson",       name:"Mustard Greens / Sarson",  emoji:"🥬", hi:"सरसों पत्ता", pa:"ਸਰ੍ਹੋਂ ਦਾ ਸਾਗ", cat:"veggie", unit:"bunch" },
+  { id:"kohlrabi",     name:"Kohlrabi / Ganth Gobhi",   emoji:"🟢", hi:"गांठ गोभी", pa:"ਗੰਢ ਗੋਭੀ", cat:"veggie", unit:"kg" },
+  { id:"jimikand",     name:"Elephant Yam / Jimikand",  emoji:"🥔", hi:"जिमीकंद", pa:"ਜਿਮੀਕੰਦ", cat:"veggie", unit:"kg" },
+  { id:"bananaflower", name:"Banana Flower",            emoji:"🌸", hi:"केले का फूल", pa:"ਕੇਲੇ ਦਾ ਫੁੱਲ", cat:"veggie", unit:"piece" },
+  { id:"greenonion",   name:"Green Onion / Hara Pyaz",  emoji:"🌱", hi:"हरा प्याज़", pa:"ਹਰਾ ਪਿਆਜ਼", cat:"veggie", unit:"bunch" },
+  { id:"curryleaf",    name:"Curry Leaf / Kadi Patta",  emoji:"🌿", hi:"कढ़ी पत्ता", pa:"ਕੜੀ ਪੱਤਾ", cat:"veggie", unit:"bunch" },
+  { id:"kakdi",        name:"Cucumis / Kakdi",          emoji:"🥒", hi:"ककड़ी", pa:"ਕਕੜੀ", cat:"veggie", unit:"kg" },
+  { id:"redcabbage",   name:"Red Cabbage",              emoji:"🟣", hi:"लाल पत्तागोभी", pa:"ਲਾਲ ਗੋਭੀ", cat:"veggie", unit:"piece" },
+  { id:"whitebrinjal", name:"White Eggplant",           emoji:"⬜", hi:"सफ़ेद बैंगन", pa:"ਚਿੱਟਾ ਬੈਂਗਣ", cat:"veggie", unit:"kg" },
+  { id:"amla",         name:"Indian Gooseberry / Amla", emoji:"🟢", hi:"आंवला", pa:"ਆਂਵਲਾ", cat:"fruit", unit:"kg" },
+  { id:"bakla",        name:"Fava Beans / Bakla",       emoji:"🫛", hi:"बाकला", pa:"ਬਾਕਲਾ", cat:"veggie", unit:"kg" },
+  { id:"hathichak",    name:"Artichoke / Hathi Chak",   emoji:"🟢", hi:"हाथी चक", pa:"ਹਾਥੀ ਚੱਕ", cat:"veggie", unit:"kg" },
+  { id:"karonda",      name:"Natal Plum / Karonda",     emoji:"🔴", hi:"करोंदा", pa:"ਕਰੌਂਦਾ", cat:"veggie", unit:"kg" },
+  { id:"kachri",       name:"Mouse Melon / Kachri",     emoji:"🟡", hi:"कचरी", pa:"ਕਚਰੀ", cat:"veggie", unit:"kg" },
 ];
 
 
@@ -527,6 +554,16 @@ const EXTRA_EMOJI_MAP = [
   ["bottlegourd",{emoji:"🥒",cat:"veggie",unit:"piece"}], ["ridgegourd",{emoji:"🥒",cat:"veggie",unit:"kg"}],
   ["torai",{emoji:"🥒",cat:"veggie",unit:"kg"}],          ["capsicum",{emoji:"🫑",cat:"veggie",unit:"kg"}],
   ["shimla",{emoji:"🫑",cat:"veggie",unit:"kg"}],
+  ["lotus",{emoji:"🪷",cat:"veggie",unit:"kg"}],          ["kamal",{emoji:"🪷",cat:"veggie",unit:"kg"}],
+  ["kamal kakdi",{emoji:"🪷",cat:"veggie",unit:"kg"}],    ["lotus stem",{emoji:"🪷",cat:"veggie",unit:"kg"}],
+  ["lotus root",{emoji:"🪷",cat:"veggie",unit:"kg"}],     ["bhindi",{emoji:"🟢",cat:"veggie",unit:"kg"}],
+  ["okra",{emoji:"🟢",cat:"veggie",unit:"kg"}],            ["lady finger",{emoji:"🟢",cat:"veggie",unit:"kg"}],
+  ["gwar",{emoji:"🟢",cat:"veggie",unit:"kg"}],            ["cluster bean",{emoji:"🟢",cat:"veggie",unit:"kg"}],
+  ["chichinda",{emoji:"🟢",cat:"veggie",unit:"kg"}],      ["snake gourd",{emoji:"🟢",cat:"veggie",unit:"kg"}],
+  ["petha",{emoji:"🟢",cat:"veggie",unit:"kg"}],          ["ash gourd",{emoji:"🟢",cat:"veggie",unit:"kg"}],
+  ["bathhua",{emoji:"🌿",cat:"veggie",unit:"bunch"}],     ["sarson",{emoji:"🥬",cat:"veggie",unit:"bunch"}],
+  ["kundru",{emoji:"🟢",cat:"veggie",unit:"kg"}],         ["jimikand",{emoji:"🥔",cat:"veggie",unit:"kg"}],
+  ["kachri",{emoji:"🟡",cat:"veggie",unit:"kg"}],         ["karonda",{emoji:"🔴",cat:"veggie",unit:"kg"}],
 ];
 
 // Guess the best emoji/category/unit for a freely-typed item name. Vendors can search for
@@ -1219,7 +1256,7 @@ export default function App() {
       <div style={{fontSize:60,marginBottom:6}}>🥬</div>
       <div style={{color:"white",fontSize:28,fontWeight:900}}>FreshBill</div>
       <div style={{color:"#A7F3D0",fontSize:14,marginTop:6,marginBottom:38,textAlign:"center"}}>Aap kaun hain? / Who are you?</div>
-      <button onClick={()=>{setRole("vendor");setScreen("home");setTab("rates");}}
+      <button onClick={()=>{setRole("vendor");setScreen("home");setTab("rates");setBillItems([]);setCustName("");setCustPhone("");setEditingId(null);}}
         style={{width:"100%",maxWidth:340,background:"white",border:"none",borderRadius:20,padding:"22px 20px",marginBottom:16,cursor:"pointer",textAlign:"left",boxShadow:"0 6px 24px rgba(0,0,0,0.2)"}}>
         <div style={{fontSize:34}}>🧺</div>
         <div style={{fontWeight:900,fontSize:19,color:C.navy,marginTop:6}}>Main Dukaandaar hoon</div>
@@ -1799,8 +1836,14 @@ export default function App() {
               setShopName(name);
               setShopSetup(true);
               setTempShopName("");
+              // Reset everything for this fresh vendor — no old rates/bills
+              setRates({});
+              setBills([]);
+              setBillItems([]);
+              setCustName("");
+              setCustPhone("");
               sbPing(deviceId, name, trialStart, !!paidMonth, paidMonth||null, vendorOwnWA);
-              notify("✅ Dukan save ho gayi!");
+              notify("✅ Dukan save ho gayi! Ab rates set karo");
             }}
             style={{width:"100%",padding:"15px 0",borderRadius:14,border:"none",background:tempShopName.trim()?"linear-gradient(135deg,#128C7E,#25D366)":"rgba(255,255,255,0.3)",color:"white",fontWeight:900,fontSize:16,cursor:"pointer",marginBottom:12}}>
             ✅ Shuru Karo
