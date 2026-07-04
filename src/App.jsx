@@ -681,6 +681,64 @@ export default function App() {
   const isPaid     = paidMonth === monthKey;
   const canUse     = trialActive || isPaid;
 
+  // ── APP INSTALL (PWA — "download like Play Store") ──
+  const [installPrompt, setInstallPrompt] = useState(null); // captured beforeinstallprompt event (Android/Chrome/Edge)
+  const [isInstalled,   setIsInstalled]   = useState(false);
+  const [showIosHelp,   setShowIosHelp]   = useState(false);
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+  useEffect(()=>{
+    const already = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    if(already || navigator.standalone) setIsInstalled(true);
+    const onBeforeInstall = (e)=>{ e.preventDefault(); setInstallPrompt(e); };
+    const onInstalled = ()=>{ setIsInstalled(true); setInstallPrompt(null); notify("✅ App install ho gaya!"); };
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('appinstalled', onInstalled);
+    return ()=>{
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
+  }, []);
+
+  async function installApp(){
+    if(installPrompt){
+      installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if(choice.outcome === 'accepted') setIsInstalled(true);
+      setInstallPrompt(null);
+      return;
+    }
+    if(isIos){ setShowIosHelp(true); return; }
+    notify("Browser ke menu se 'Add to Home Screen' / 'Install App' chuno", "error");
+  }
+
+  function IosInstallHelp(){
+    if(!showIosHelp) return null;
+    return (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}} onClick={()=>setShowIosHelp(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:"white",borderRadius:"22px 22px 0 0",padding:"22px 20px 28px",width:"100%",maxWidth:420,boxShadow:"0 -4px 24px rgba(0,0,0,0.25)"}}>
+          <div style={{fontWeight:900,fontSize:17,color:C.navy,marginBottom:14}}>📲 iPhone par Install karo</div>
+          <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:12}}>
+            <div style={{fontSize:22}}>1️⃣</div>
+            <div style={{fontSize:14,color:C.dgray}}>Safari mein neeche <b>Share</b> icon (⬆️ box se arrow) dabao</div>
+          </div>
+          <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:12}}>
+            <div style={{fontSize:22}}>2️⃣</div>
+            <div style={{fontSize:14,color:C.dgray}}><b>"Add to Home Screen"</b> chuno</div>
+          </div>
+          <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:18}}>
+            <div style={{fontSize:22}}>3️⃣</div>
+            <div style={{fontSize:14,color:C.dgray}}><b>"Add"</b> dabao — FreshBill ka icon home screen par aa jayega, bilkul app ki tarah!</div>
+          </div>
+          <button onClick={()=>setShowIosHelp(false)}
+            style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:C.green,color:"white",fontWeight:800,fontSize:15,cursor:"pointer"}}>
+            Samajh gaya
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── LOAD ──
   useEffect(()=>{
     (async()=>{
@@ -1191,6 +1249,18 @@ export default function App() {
         🔐 Admin Panel (Owner Only)
       </button>
 
+      {!isInstalled && (
+        <button onClick={installApp}
+          style={{width:"100%",maxWidth:340,marginTop:14,padding:"14px 20px",borderRadius:16,border:"none",background:C.gold,color:"white",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 6px 20px rgba(245,158,11,0.4)"}}>
+          📲 App Install Karo — Free
+        </button>
+      )}
+      {isInstalled && (
+        <div style={{color:"#A7F3D0",fontSize:12,marginTop:14,fontWeight:700}}>✅ App install ho chuka hai</div>
+      )}
+
+      <IosInstallHelp/>
+
       <div style={{color:"#A7F3D0",fontSize:11,marginTop:24,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
     </div>
   );
@@ -1595,6 +1665,7 @@ export default function App() {
     return (
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:custList.length?200:24}}>
         {toast && <Toast {...toast}/>}
+        <IosInstallHelp/>
 
         {/* Welcome banner for returning grahak */}
         {showWelcome && custOwnName && (
@@ -1611,6 +1682,12 @@ export default function App() {
               <div style={{fontSize:12,opacity:0.8,marginTop:2}}>Jo chahiye chuno, vendor ko bhejo</div>
             </div>
             <div style={{display:"flex",gap:6}}>
+              {!isInstalled && (
+                <button onClick={installApp}
+                  style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 10px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+                  📲 Install
+                </button>
+              )}
               <button onClick={()=>{setCompareItem(null);setCompareRates([]);setCompareItems([]);setScreen("compareRates");}}
                 style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 10px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
                 📊 Compare
@@ -1931,6 +2008,7 @@ export default function App() {
   return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:130}}>
       {toast && <Toast {...toast}/>}
+      <IosInstallHelp/>
 
       {/* Welcome banner for returning vendor */}
       {showWelcome && shopName && shopName!=="JK Technologies — Admin" && (
@@ -1954,6 +2032,13 @@ export default function App() {
             )}
           </div>
           <div style={{display:"flex",gap:6}}>
+            {!isInstalled && (
+              <button onClick={installApp}
+                style={{background:"rgba(255,255,255,0.25)",border:"2px solid rgba(255,255,255,0.5)",color:"white",borderRadius:10,padding:"6px 11px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}
+                title="App ko phone mein install karo">
+                📲 Install
+              </button>
+            )}
             <button onClick={()=>setAppLang(appLang==="en"?"hi":appLang==="hi"?"pa":"en")}
               style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"6px 11px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}
               title="Bhasha badlo / Change language">
