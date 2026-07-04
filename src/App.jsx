@@ -380,182 +380,151 @@ function isValidCode(code, deviceId) {
 
 // ─── DEFAULTS ─────────────────────────────────────────────────────────────
 const DEFAULT_ITEMS = [
-  // ── FRUITS ──────────────────────────────────────────────────────────────
-  { id:"apple",        name:"Apple / Seb",              emoji:"🍎", hi:"सेब", pa:"ਸੇਬ", cat:"fruit",   unit:"kg" },
-  { id:"mango",        name:"Mango / Aam",              emoji:"🥭", hi:"आम", pa:"ਅੰਬ", cat:"fruit",   unit:"kg" },
-  { id:"banana",       name:"Banana / Kela",            emoji:"🍌", hi:"केला", pa:"ਕੇਲਾ", cat:"fruit",   unit:"kg" },
-  { id:"orange",       name:"Orange / Santra",          emoji:"🍊", hi:"संतरा", pa:"ਸੰਤਰਾ", cat:"fruit",   unit:"kg" },
-  { id:"papaya",       name:"Papaya / Papita",          emoji:"🍑", hi:"पपीता", pa:"ਪਪੀਤਾ", cat:"fruit",   unit:"kg" },
-  { id:"lichi",        name:"Lichi",                    emoji:"🍇", hi:"लीची", pa:"ਲੀਚੀ", cat:"fruit",   unit:"kg" },
-  { id:"watermelon",   name:"Watermelon / Tarbooj",     emoji:"🍉", hi:"तरबूज़", pa:"ਤਰਬੂਜ਼", cat:"fruit",   unit:"piece" },
-  { id:"muskmelon",    name:"Muskmelon / Kharbooja",    emoji:"🍈", hi:"खरबूजा", pa:"ਖ਼ਰਬੂਜ਼ਾ", cat:"fruit",   unit:"piece" },
-  { id:"jamun",        name:"Jamun",                    emoji:"🫐", hi:"जामुन", pa:"ਜਾਮੁਣ", cat:"fruit",   unit:"kg" },
-  { id:"guava",        name:"Guava / Amrood",           emoji:"🍐", hi:"अमरूद", pa:"ਅਮਰੂਦ", cat:"fruit",   unit:"kg" },
-  { id:"anar",         name:"Pomegranate / Anar",       emoji:"❤️", hi:"अनार", pa:"ਅਨਾਰ", cat:"fruit",   unit:"piece" },
-  { id:"grapes",       name:"Grapes / Angoor",          emoji:"🍇", hi:"अंगूर", pa:"ਅੰਗੂਰ", cat:"fruit",   unit:"kg" },
-  { id:"strawberry",   name:"Strawberry",               emoji:"🍓", hi:"स्ट्रॉबेरी", pa:"ਸਟ੍ਰਾਬੇਰੀ", cat:"fruit",   unit:"kg" },
-  { id:"coconut",      name:"Coconut / Nariyal",        emoji:"🥥", hi:"नारियल", pa:"ਨਾਰੀਅਲ", cat:"fruit",   unit:"piece" },
-  { id:"pineapple",    name:"Pineapple / Ananas",       emoji:"🍍", hi:"अनानास", pa:"ਅਨਾਨਾਸ", cat:"fruit",   unit:"piece" },
-  { id:"kiwi",         name:"Kiwi",                     emoji:"🥝", hi:"कीवी", pa:"ਕੀਵੀ", cat:"fruit",   unit:"kg" },
-  { id:"lime",         name:"Lime / Nimbu",             emoji:"🍋", hi:"नींबू", pa:"ਨਿੰਬੂ", cat:"fruit",   unit:"kg" },
-  { id:"cherry",       name:"Cherry",                   emoji:"🍒", hi:"चेरी", pa:"ਚੈਰੀ", cat:"fruit",   unit:"kg" },
-  { id:"peach",        name:"Peach / Aadoo",            emoji:"🍑", hi:"आड़ू", pa:"ਆੜੂ", cat:"fruit",   unit:"kg" },
-  { id:"pear",         name:"Pear / Nashpati",          emoji:"🍐", hi:"नाशपाती", pa:"ਨਾਸ਼ਪਾਤੀ", cat:"fruit",   unit:"kg" },
-  { id:"dates",        name:"Dates / Khajoor",          emoji:"🌴", hi:"खजूर", pa:"ਖਜੂਰ", cat:"fruit",   unit:"kg" },
-  { id:"fig",          name:"Fig / Anjeer",             emoji:"🫐", hi:"अंजीर", pa:"ਅੰਜੀਰ", cat:"fruit",   unit:"kg" },
-  { id:"plum",         name:"Plum / Aloo Bukhara",      emoji:"🟣", hi:"आलूबुखारा", pa:"ਆਲੂਬੁਖਾਰਾ", cat:"fruit",   unit:"kg" },
-  { id:"apricot",      name:"Apricot / Khumani",        emoji:"🟠", hi:"खुबानी", pa:"ਖੁਬਾਨੀ", cat:"fruit",   unit:"kg" },
+  // ── FRUITS (24) ──
+  { id:"apple",        name:"Apple / Seb",              emoji:"🍎", hi:"सेब",        pa:"ਸੇਬ",       cat:"fruit",   unit:"kg" },
+  { id:"mango",        name:"Mango / Aam",              emoji:"🥭", hi:"आम",         pa:"ਅੰਬ",       cat:"fruit",   unit:"kg" },
+  { id:"banana",       name:"Banana / Kela",            emoji:"🍌", hi:"केला",        pa:"ਕੇਲਾ",      cat:"fruit",   unit:"dozen" },
+  { id:"orange",       name:"Orange / Santra",          emoji:"🍊", hi:"संतरा",       pa:"ਸੰਤਰਾ",     cat:"fruit",   unit:"kg" },
+  { id:"papaya",       name:"Papaya / Papita",          emoji:"🍑", hi:"पपीता",       pa:"ਪਪੀਤਾ",     cat:"fruit",   unit:"kg" },
+  { id:"lichi",        name:"Lichi",                    emoji:"🍇", hi:"लीची",        pa:"ਲੀਚੀ",      cat:"fruit",   unit:"kg" },
+  { id:"watermelon",   name:"Watermelon / Tarbooj",     emoji:"🍉", hi:"तरबूज़",      pa:"ਤਰਬੂਜ਼",    cat:"fruit",   unit:"piece" },
+  { id:"muskmelon",    name:"Muskmelon / Kharbooja",    emoji:"🍈", hi:"खरबूजा",     pa:"ਖ਼ਰਬੂਜ਼ਾ",  cat:"fruit",   unit:"piece" },
+  { id:"jamun",        name:"Jamun",                    emoji:"🫐", hi:"जामुन",       pa:"ਜਾਮੁਣ",     cat:"fruit",   unit:"kg" },
+  { id:"guava",        name:"Guava / Amrood",           emoji:"🍐", hi:"अमरूद",       pa:"ਅਮਰੂਦ",     cat:"fruit",   unit:"kg" },
+  { id:"anar",         name:"Pomegranate / Anar",       emoji:"❤️", hi:"अनार",        pa:"ਅਨਾਰ",      cat:"fruit",   unit:"kg" },
+  { id:"grapes",       name:"Grapes / Angoor",          emoji:"🍇", hi:"अंगूर",       pa:"ਅੰਗੂਰ",     cat:"fruit",   unit:"kg" },
+  { id:"strawberry",   name:"Strawberry",               emoji:"🍓", hi:"स्ट्रॉबेरी",  pa:"ਸਟ੍ਰਾਬੇਰੀ", cat:"fruit",   unit:"kg" },
+  { id:"coconut",      name:"Coconut / Nariyal",        emoji:"🥥", hi:"नारियल",      pa:"ਨਾਰੀਅਲ",    cat:"fruit",   unit:"piece" },
+  { id:"pineapple",    name:"Pineapple / Ananas",       emoji:"🍍", hi:"अनानास",      pa:"ਅਨਾਨਾਸ",    cat:"fruit",   unit:"piece" },
+  { id:"kiwi",         name:"Kiwi",                     emoji:"🥝", hi:"कीवी",        pa:"ਕੀਵੀ",      cat:"fruit",   unit:"kg" },
+  { id:"lime",         name:"Lime / Nimbu",             emoji:"🍋", hi:"नींबू",        pa:"ਨਿੰਬੂ",     cat:"fruit",   unit:"kg" },
+  { id:"cherry",       name:"Cherry",                   emoji:"🍒", hi:"चेरी",        pa:"ਚੈਰੀ",      cat:"fruit",   unit:"kg" },
+  { id:"peach",        name:"Peach / Aadoo",            emoji:"🍑", hi:"आड़ू",         pa:"ਆੜੂ",       cat:"fruit",   unit:"kg" },
+  { id:"pear",         name:"Pear / Nashpati",          emoji:"🍐", hi:"नाशपाती",     pa:"ਨਾਸ਼ਪਾਤੀ",  cat:"fruit",   unit:"kg" },
+  { id:"dates",        name:"Dates / Khajoor",          emoji:"🌴", hi:"खजूर",        pa:"ਖਜੂਰ",      cat:"fruit",   unit:"kg" },
+  { id:"fig",          name:"Fig / Anjeer",             emoji:"🟤", hi:"अंजीर",       pa:"ਅੰਜੀਰ",     cat:"fruit",   unit:"kg" },
+  { id:"plum",         name:"Plum / Aloo Bukhara",      emoji:"🟣", hi:"आलूबुखारा",   pa:"ਆਲੂਬੁਖਾਰਾ", cat:"fruit",   unit:"kg" },
+  { id:"amla",         name:"Indian Gooseberry / Amla", emoji:"🟢", hi:"आंवला",       pa:"ਆਂਵਲਾ",     cat:"fruit",   unit:"kg" },
 
-  // ── VEGETABLES ───────────────────────────────────────────────────────────
-  { id:"tomato",       name:"Tomato / Tamatar",         emoji:"🍅", hi:"टमाटर", pa:"ਟਮਾਟਰ", cat:"veggie",  unit:"kg" },
-  { id:"potato",       name:"Potato / Aalu",            emoji:"🥔", hi:"आलू", pa:"ਆਲੂ", cat:"veggie",  unit:"kg" },
-  { id:"onion",        name:"Onion / Pyaaz",            emoji:"🧅", hi:"प्याज़", pa:"ਪਿਆਜ਼", cat:"veggie",  unit:"kg" },
-  { id:"garlic",       name:"Garlic / Lahsun",          emoji:"🧄", hi:"लहसुन", pa:"ਲਸਣ", cat:"veggie",  unit:"kg" },
-  { id:"cauliflower",  name:"Cauliflower / Phool Gobhi",emoji:"🥦", hi:"फूलगोभी", pa:"ਫੁੱਲ ਗੋਭੀ", cat:"veggie",  unit:"piece" },
-  { id:"cabbage",      name:"Cabbage / Patta Gobhi",    emoji:"🥬", hi:"पत्तागोभी", pa:"ਬੰਦ ਗੋਭੀ", cat:"veggie",  unit:"piece" },
-  { id:"cucumber",     name:"Cucumber / Kheera",        emoji:"🥒", hi:"खीरा", pa:"ਖੀਰਾ", cat:"veggie",  unit:"kg" },
-  { id:"carrot",       name:"Carrot / Gajar",           emoji:"🥕", hi:"गाजर", pa:"ਗਾਜਰ", cat:"veggie",  unit:"kg" },
-  { id:"beans",        name:"Green Beans / Sem",        emoji:"🫛", hi:"सेम / फलियाँ", pa:"ਫਲੀਆਂ", cat:"veggie",  unit:"kg" },
-  { id:"chilli",       name:"Green Chilli / Mirchi",    emoji:"🌶️", hi:"हरी मिर्च", pa:"ਹਰੀ ਮਿਰਚ", cat:"veggie",  unit:"kg" },
-  { id:"spinach",      name:"Spinach / Palak",          emoji:"🥬", hi:"पालक", pa:"ਪਾਲਕ", cat:"veggie",  unit:"bunch" },
-  { id:"brinjal",      name:"Brinjal / Baingan",        emoji:"🍆", hi:"बैंगन", pa:"ਬੈਂਗਣ", cat:"veggie",  unit:"kg" },
-  { id:"lauki",        name:"Lauki / Bottle Gourd",     emoji:"🥒", hi:"लौकी", pa:"ਘੀਆ", cat:"veggie",  unit:"piece" },
-  { id:"peas",         name:"Peas / Matar",             emoji:"🫛", hi:"मटर", pa:"ਮਟਰ", cat:"veggie",  unit:"kg" },
-  { id:"corn",         name:"Corn / Makai",             emoji:"🌽", hi:"मक्का", pa:"ਮੱਕੀ", cat:"veggie",  unit:"piece" },
-  { id:"radish",       name:"Radish / Mooli",           emoji:"⬜", hi:"मूली", pa:"ਮੂਲੀ", cat:"veggie",  unit:"kg" },
-  { id:"beetroot",     name:"Beetroot / Chukandar",     emoji:"🟣", hi:"चुकंदर", pa:"ਚੁਕੰਦਰ", cat:"veggie",  unit:"kg" },
-  { id:"pumpkin",      name:"Pumpkin / Kaddu",          emoji:"🎃", hi:"कद्दू", pa:"ਕੱਦੂ", cat:"veggie",  unit:"piece" },
-  { id:"bellpepper",   name:"Bell Pepper / Shimla Mirch",emoji:"🫑",hi:"शिमला मिर्च", pa:"ਸ਼ਿਮਲਾ ਮਿਰਚ", cat:"veggie",  unit:"kg" },
-  { id:"mushroom",     name:"Mushroom / Kumbhi",        emoji:"🍄", hi:"मशरूम / कुम्भी", pa:"ਖੁੰਬਾਂ", cat:"veggie",  unit:"kg" },
-  { id:"methi",        name:"Fenugreek / Methi",        emoji:"🌿", hi:"मेथी", pa:"ਮੇਥੀ", cat:"veggie",  unit:"bunch" },
-  { id:"coriander",    name:"Coriander / Dhaniya",      emoji:"🌿", hi:"धनिया", pa:"ਧਨੀਆ", cat:"veggie",  unit:"bunch" },
-  { id:"mint",         name:"Mint / Pudina",            emoji:"🌱", hi:"पुदीना", pa:"ਪੁਦੀਨਾ", cat:"veggie",  unit:"bunch" },
-  { id:"tinda",        name:"Tinda / Apple Gourd",      emoji:"🟢", hi:"टिंडा", pa:"ਟਿੰਡਾ", cat:"veggie",  unit:"kg" },
-  { id:"karela",       name:"Bitter Gourd / Karela",    emoji:"💚", hi:"करेला", pa:"ਕਰੇਲਾ", cat:"veggie",  unit:"kg" },
-  { id:"arbi",         name:"Arbi / Taro Root",         emoji:"🥔", hi:"अरबी", pa:"ਅਰਬੀ", cat:"veggie",  unit:"kg" },
-  { id:"bharwa",       name:"Parwal / Pointed Gourd",   emoji:"🟩", hi:"परवल", pa:"ਪਰਵਲ", cat:"veggie",  unit:"kg" },
-  { id:"drumstick",    name:"Drumstick / Sahjan",       emoji:"🌿", hi:"सहजन", pa:"ਸਹਿੰਜਣਾ", cat:"veggie",  unit:"piece" },
-  { id:"sweetpotato",  name:"Sweet Potato / Shakarkand",emoji:"🍠", hi:"शकरकंद", pa:"ਸ਼ਕਰਕੰਦੀ", cat:"veggie",  unit:"kg" },
-  { id:"broccoli",     name:"Broccoli",                 emoji:"🥦", hi:"ब्रोकली", pa:"ਬਰੋਕਲੀ", cat:"veggie",  unit:"piece" },
-  { id:"leek",         name:"Leek / Hara Pyaz",         emoji:"🌱", hi:"हरा प्याज़", pa:"ਹਰਾ ਪਿਆਜ਼", cat:"veggie",  unit:"bunch" },
-  { id:"zucchini",     name:"Zucchini / Tori",          emoji:"🥒", hi:"तोरी", pa:"ਤੋਰੀ", cat:"veggie",  unit:"kg" },
-  { id:"turniip",      name:"Turnip / Shalgam",         emoji:"🟣", hi:"शलगम", pa:"ਸ਼ਲਗਮ", cat:"veggie",  unit:"kg" },
+  // ── VEGETABLES (60+) ──
+  { id:"tomato",       name:"Tomato / Tamatar",         emoji:"🍅", hi:"टमाटर",       pa:"ਟਮਾਟਰ",     cat:"veggie",  unit:"kg" },
+  { id:"potato",       name:"Potato / Aalu",            emoji:"🥔", hi:"आलू",         pa:"ਆਲੂ",       cat:"veggie",  unit:"kg" },
+  { id:"onion",        name:"Onion / Pyaaz",            emoji:"🧅", hi:"प्याज़",       pa:"ਪਿਆਜ਼",     cat:"veggie",  unit:"kg" },
+  { id:"garlic",       name:"Garlic / Lahsun",          emoji:"🧄", hi:"लहसुन",       pa:"ਲਸਣ",       cat:"veggie",  unit:"kg" },
+  { id:"ginger",       name:"Ginger / Adrak",           emoji:"🫚", hi:"अदरक",        pa:"ਅਦਰਕ",      cat:"veggie",  unit:"kg" },
+  { id:"cauliflower",  name:"Cauliflower / Phool Gobhi",emoji:"🥦", hi:"फूल गोभी",    pa:"ਫੁੱਲ ਗੋਭੀ", cat:"veggie",  unit:"piece" },
+  { id:"cabbage",      name:"Cabbage / Patta Gobhi",    emoji:"🥬", hi:"पत्ता गोभी",   pa:"ਬੰਦ ਗੋਭੀ",  cat:"veggie",  unit:"piece" },
+  { id:"redcabbage",   name:"Red Cabbage",              emoji:"🟣", hi:"लाल पत्तागोभी",pa:"ਲਾਲ ਗੋਭੀ",  cat:"veggie",  unit:"piece" },
+  { id:"cucumber",     name:"Cucumber / Kheera",        emoji:"🥒", hi:"खीरा",        pa:"ਖੀਰਾ",      cat:"veggie",  unit:"kg" },
+  { id:"kakdi",        name:"Cucumis / Kakdi",          emoji:"🥒", hi:"ककड़ी",        pa:"ਕਕੜੀ",      cat:"veggie",  unit:"kg" },
+  { id:"carrot",       name:"Carrot / Gajar",           emoji:"🥕", hi:"गाजर",        pa:"ਗਾਜਰ",      cat:"veggie",  unit:"kg" },
+  { id:"beans",        name:"Green Beans / Sem",        emoji:"🫛", hi:"हरी शेम",     pa:"ਫਲੀਆਂ",     cat:"veggie",  unit:"kg" },
+  { id:"chilli",       name:"Green Chilli / Mirchi",    emoji:"🌶️", hi:"हरी मिर्च",   pa:"ਹਰੀ ਮਿਰਚ",  cat:"veggie",  unit:"kg" },
+  { id:"redchilliveg", name:"Red Chilli / Lal Mirch",   emoji:"🌶️", hi:"लाल मिर्च",   pa:"ਲਾਲ ਮਿਰਚ",  cat:"veggie",  unit:"kg" },
+  { id:"spinach",      name:"Spinach / Palak",          emoji:"🥬", hi:"पालक",        pa:"ਪਾਲਕ",      cat:"veggie",  unit:"bunch" },
+  { id:"brinjal",      name:"Brinjal / Baingan",        emoji:"🍆", hi:"बैंगन",       pa:"ਬੈਂਗਣ",     cat:"veggie",  unit:"kg" },
+  { id:"whitebrinjal", name:"White Eggplant",           emoji:"⬜", hi:"सफ़ेद बैंगन",  pa:"ਚਿੱਟਾ ਬੈਂਗਣ",cat:"veggie", unit:"kg" },
+  { id:"ladyfinger",   name:"Lady Finger / Bhindi",     emoji:"🟢", hi:"भिंडी",       pa:"ਭਿੰਡੀ",     cat:"veggie",  unit:"kg" },
+  { id:"lauki",        name:"Bottle Gourd / Lauki",     emoji:"🥒", hi:"लौकी",        pa:"ਘੀਆ",       cat:"veggie",  unit:"piece" },
+  { id:"peas",         name:"Peas / Matar",             emoji:"🫛", hi:"मटर",         pa:"ਮਟਰ",       cat:"veggie",  unit:"kg" },
+  { id:"corn",         name:"Corn / Makai",             emoji:"🌽", hi:"मक्का",        pa:"ਮੱਕੀ",      cat:"veggie",  unit:"piece" },
+  { id:"radish",       name:"Radish / Mooli",           emoji:"⬜", hi:"मूली",         pa:"ਮੂਲੀ",      cat:"veggie",  unit:"kg" },
+  { id:"beetroot",     name:"Beetroot / Chukandar",     emoji:"🟣", hi:"चुकंदर",      pa:"ਚੁਕੰਦਰ",    cat:"veggie",  unit:"kg" },
+  { id:"pumpkin",      name:"Pumpkin / Kaddu",          emoji:"🎃", hi:"कद्दू",        pa:"ਕੱਦੂ",      cat:"veggie",  unit:"kg" },
+  { id:"ashgourd",     name:"Ash Gourd / Petha",        emoji:"🟢", hi:"पेठा",        pa:"ਪੇਠਾ",      cat:"veggie",  unit:"kg" },
+  { id:"bellpepper",   name:"Bell Pepper / Shimla Mirch",emoji:"🫑",hi:"शिमला मिर्च", pa:"ਸ਼ਿਮਲਾ ਮਿਰਚ",cat:"veggie", unit:"kg" },
+  { id:"mushroom",     name:"Mushroom / Kumbhi",        emoji:"🍄", hi:"कुम्भी",      pa:"ਖੁੰਬਾਂ",    cat:"veggie",  unit:"kg" },
+  { id:"methi",        name:"Fenugreek / Methi",        emoji:"🌿", hi:"हरी मेथी",    pa:"ਮੇਥੀ",      cat:"veggie",  unit:"bunch" },
+  { id:"coriander",    name:"Coriander / Dhaniya",      emoji:"🌿", hi:"हरा धनिया",   pa:"ਧਨੀਆ",      cat:"veggie",  unit:"bunch" },
+  { id:"mint",         name:"Mint / Pudina",            emoji:"🌱", hi:"पुदीना",       pa:"ਪੁਦੀਨਾ",    cat:"veggie",  unit:"bunch" },
+  { id:"curryleaf",    name:"Curry Leaf / Kadi Patta",  emoji:"🌿", hi:"कढ़ी पत्ता",   pa:"ਕੜੀ ਪੱਤਾ",  cat:"veggie",  unit:"bunch" },
+  { id:"tinda",        name:"Apple Gourd / Tinda",      emoji:"🟢", hi:"टिंडा",       pa:"ਟਿੰਡਾ",     cat:"veggie",  unit:"kg" },
+  { id:"karela",       name:"Bitter Gourd / Karela",    emoji:"💚", hi:"करेला",        pa:"ਕਰੇਲਾ",     cat:"veggie",  unit:"kg" },
+  { id:"arbi",         name:"Colocasia / Arbi",         emoji:"🥔", hi:"अरबी",        pa:"ਅਰਬੀ",      cat:"veggie",  unit:"kg" },
+  { id:"parwal",       name:"Pointed Gourd / Parwal",   emoji:"🟩", hi:"परवल",        pa:"ਪਰਵਲ",      cat:"veggie",  unit:"kg" },
+  { id:"drumstick",    name:"Drumstick / Sahjan",       emoji:"🌿", hi:"सहजन",        pa:"ਸਹਿੰਜਣਾ",   cat:"veggie",  unit:"piece" },
+  { id:"sweetpotato",  name:"Sweet Potato / Shakarkand",emoji:"🍠", hi:"शकरकंद",      pa:"ਸ਼ਕਰਕੰਦੀ",  cat:"veggie",  unit:"kg" },
+  { id:"broccoli",     name:"Broccoli",                 emoji:"🥦", hi:"ब्रोकली",     pa:"ਬਰੋਕਲੀ",    cat:"veggie",  unit:"piece" },
+  { id:"greenonion",   name:"Green Onion / Hara Pyaz",  emoji:"🌱", hi:"हरा प्याज़",   pa:"ਹਰਾ ਪਿਆਜ਼", cat:"veggie",  unit:"bunch" },
+  { id:"tori",         name:"Ridge Gourd / Tori",       emoji:"🥒", hi:"तोरी",        pa:"ਤੋਰੀ",      cat:"veggie",  unit:"kg" },
+  { id:"turnip",       name:"Turnip / Shalgam",         emoji:"🟣", hi:"शलगम",        pa:"ਸ਼ਲਗਮ",     cat:"veggie",  unit:"kg" },
+  { id:"lotusstem",    name:"Lotus Stem / Kamal Kakdi", emoji:"🪷", hi:"कमल ककड़ी",    pa:"ਕਮਲ ਕੱਕੜੀ", cat:"veggie",  unit:"kg" },
+  { id:"jackfruit",    name:"Jackfruit / Kathal",       emoji:"🟡", hi:"कटहल",        pa:"ਕਟਹਲ",      cat:"veggie",  unit:"kg" },
+  { id:"chichinda",    name:"Snake Gourd / Chichinda",  emoji:"🟢", hi:"चिचिंडा",     pa:"ਚਿਚਿੰਡਾ",   cat:"veggie",  unit:"kg" },
+  { id:"gwarphali",    name:"Cluster Beans / Gwar",     emoji:"🟢", hi:"ग्वार फली",   pa:"ਗਵਾਰ ਫਲੀ",  cat:"veggie",  unit:"kg" },
+  { id:"amaranth",     name:"Amaranth / Chaulai",       emoji:"🌿", hi:"चौराई",       pa:"ਚੌਲਾਈ",     cat:"veggie",  unit:"bunch" },
+  { id:"amaranthleaf", name:"Amaranth Leaves / Cholai", emoji:"🥬", hi:"हरी चोलाई",   pa:"ਹਰੀ ਚੌਲਾਈ", cat:"veggie",  unit:"bunch" },
+  { id:"bathhua",      name:"Goosefoot / Bathhua",      emoji:"🌿", hi:"बथुआ",        pa:"ਬਥੂਆ",      cat:"veggie",  unit:"bunch" },
+  { id:"sarson",       name:"Mustard Greens / Sarson",  emoji:"🥬", hi:"सरसों पत्ता",  pa:"ਸਰ੍ਹੋਂ ਦਾ ਸਾਗ",cat:"veggie",unit:"bunch" },
+  { id:"kohlrabi",     name:"Kohlrabi / Ganth Gobhi",   emoji:"🟢", hi:"गांठ गोभी",   pa:"ਗੰਢ ਗੋਭੀ",  cat:"veggie",  unit:"kg" },
+  { id:"rawbanana",    name:"Raw Banana / Kacha Kela",  emoji:"🍌", hi:"कच्चा केला",   pa:"ਕੱਚਾ ਕੇਲਾ", cat:"veggie",  unit:"kg" },
+  { id:"bananaflower", name:"Banana Flower / Kele Ka Phool",emoji:"🌸",hi:"केले का फूल",pa:"ਕੇਲੇ ਦਾ ਫੁੱਲ",cat:"veggie",unit:"piece" },
+  { id:"rawpapaya",    name:"Raw Papaya / Kacha Papita",emoji:"🟢", hi:"कच्चा पपीता", pa:"ਕੱਚਾ ਪਪੀਤਾ",cat:"veggie",  unit:"kg" },
+  { id:"kundru",       name:"Ivy Gourd / Kundru",       emoji:"🟢", hi:"कुंदरू",      pa:"ਕੁੰਦਰੂ",    cat:"veggie",  unit:"kg" },
+  { id:"jimikand",     name:"Elephant Yam / Jimikand",  emoji:"🥔", hi:"जिमीकंद",     pa:"ਜਿਮੀਕੰਦ",   cat:"veggie",  unit:"kg" },
+  { id:"arrowroot",    name:"Arrowroot / Ararot",       emoji:"⬜", hi:"अरारोट",      pa:"ਅਰਾਰੋਟ",    cat:"veggie",  unit:"kg" },
+  { id:"bamboo",       name:"Bamboo Shoot / Kareel",    emoji:"🎋", hi:"बांस के कोपले",pa:"ਬਾਂਸ ਦੀ ਗੰਢ",cat:"veggie",  unit:"kg" },
+  { id:"bakla",        name:"Fava Beans / Bakla",       emoji:"🫛", hi:"बाकला",       pa:"ਬਾਕਲਾ",     cat:"veggie",  unit:"kg" },
+  { id:"fennel",       name:"Fennel / Saunf Sabzi",     emoji:"🌿", hi:"हरा सोया",    pa:"ਸੌਂਫ਼",     cat:"veggie",  unit:"kg" },
+  { id:"celery",       name:"Celery / Ajwain Patta",    emoji:"🌿", hi:"आजमोदा",      pa:"ਅਜਵਾਇਨ",    cat:"veggie",  unit:"bunch" },
+  { id:"karonda",      name:"Natal Plum / Karonda",     emoji:"🔴", hi:"करोंदा",       pa:"ਕਰੌਂਦਾ",    cat:"veggie",  unit:"kg" },
+  { id:"kachri",       name:"Mouse Melon / Kachri",     emoji:"🟡", hi:"कचरी",        pa:"ਕਚਰੀ",      cat:"veggie",  unit:"kg" },
+  { id:"hathichak",    name:"Artichoke / Hathi Chak",   emoji:"🟢", hi:"हाथी चक",     pa:"ਹਾਥੀ ਚੱਕ",  cat:"veggie",  unit:"kg" },
+  { id:"blackpepper",  name:"Black Pepper / Kali Mirch",emoji:"⚫", hi:"काली मिर्च",  pa:"ਕਾਲੀ ਮਿਰਚ", cat:"veggie",  unit:"kg" },
 
-  // ── GROCERIES ────────────────────────────────────────────────────────────
-  { id:"bread",        name:"Bread",                    emoji:"🍞", hi:"ब्रेड", pa:"ਬਰੈੱਡ", cat:"grocery", unit:"packet" },
-  { id:"milk",         name:"Milk / Doodh",             emoji:"🥛", hi:"दूध", pa:"ਦੁੱਧ", cat:"grocery", unit:"litre" },
-  { id:"paneer",       name:"Paneer",                   emoji:"🧀", hi:"पनीर", pa:"ਪਨੀਰ", cat:"grocery", unit:"kg" },
-  { id:"butter",       name:"Butter / Makhan",          emoji:"🧈", hi:"मक्खन", pa:"ਮੱਖਣ", cat:"grocery", unit:"gm" },
-  { id:"dahi",         name:"Dahi / Curd",              emoji:"🥛", hi:"दही", pa:"ਦਹੀਂ", cat:"grocery", unit:"kg" },
-  { id:"eggs",         name:"Eggs / Ande",              emoji:"🥚", hi:"अंडे", pa:"ਆਂਡੇ", cat:"grocery", unit:"dozen" },
-  { id:"buttermilk",   name:"Buttermilk / Chaach",      emoji:"🥤", hi:"छाछ", pa:"ਲੱਸੀ", cat:"grocery", unit:"litre" },
-  { id:"ghee",         name:"Ghee",                     emoji:"🫙", hi:"घी", pa:"ਘਿਓ", cat:"grocery", unit:"kg" },
-  { id:"oil",          name:"Cooking Oil / Tel",        emoji:"🫒", hi:"तेल", pa:"ਤੇਲ", cat:"grocery", unit:"litre" },
-  { id:"mustardoil",   name:"Mustard Oil / Sarson Tel", emoji:"🫙", hi:"सरसों का तेल", pa:"ਸਰ੍ਹੋਂ ਦਾ ਤੇਲ", cat:"grocery", unit:"litre" },
-  { id:"salt",         name:"Salt / Namak",             emoji:"🧂", hi:"नमक", pa:"ਲੂਣ", cat:"grocery", unit:"kg" },
-  { id:"flour",        name:"Wheat Flour / Atta",       emoji:"🌾", hi:"आटा", pa:"ਆਟਾ", cat:"grocery", unit:"kg" },
-  { id:"maida",        name:"Maida / Refined Flour",    emoji:"🌾", hi:"मैदा", pa:"ਮੈਦਾ", cat:"grocery", unit:"kg" },
-  { id:"besan",        name:"Besan / Gram Flour",       emoji:"🟡", hi:"बेसन", pa:"ਬੇਸਣ", cat:"grocery", unit:"kg" },
-  { id:"rice",         name:"Rice / Chawal",            emoji:"🍚", hi:"चावल", pa:"ਚੌਲ", cat:"grocery", unit:"kg" },
-  { id:"dal",          name:"Dal / Lentils",            emoji:"🫘", hi:"दाल", pa:"ਦਾਲ", cat:"grocery", unit:"kg" },
-  { id:"chana",        name:"Chana / Chickpeas",        emoji:"🫘", hi:"चना", pa:"ਛੋਲੇ", cat:"grocery", unit:"kg" },
-  { id:"rajma",        name:"Rajma / Kidney Beans",     emoji:"🫘", hi:"राजमा", pa:"ਰਾਜਮਾ", cat:"grocery", unit:"kg" },
-  { id:"sugar",        name:"Sugar / Cheeni",           emoji:"🍬", hi:"चीनी", pa:"ਖੰਡ", cat:"grocery", unit:"kg" },
-  { id:"jaggery",      name:"Jaggery / Gur",            emoji:"🟫", hi:"गुड़", pa:"ਗੁੜ", cat:"grocery", unit:"kg" },
-  { id:"honey",        name:"Honey / Shahad",           emoji:"🍯", hi:"शहद", pa:"ਸ਼ਹਿਦ", cat:"grocery", unit:"kg" },
-  { id:"tea",          name:"Tea / Chai Patti",         emoji:"🍵", hi:"चाय पत्ती", pa:"ਚਾਹ ਪੱਤੀ", cat:"grocery", unit:"kg" },
-  { id:"coffee",       name:"Coffee",                   emoji:"☕", hi:"कॉफ़ी", pa:"ਕੌਫ਼ੀ", cat:"grocery", unit:"kg" },
-  { id:"ginger",       name:"Ginger / Adrak",           emoji:"🫚", hi:"अदरक", pa:"ਅਦਰਕ", cat:"grocery", unit:"kg" },
-  { id:"turmeric",     name:"Turmeric / Haldi",         emoji:"🟡", hi:"हल्दी", pa:"ਹਲਦੀ", cat:"grocery", unit:"kg" },
-  { id:"cumin",        name:"Cumin / Jeera",            emoji:"🟤", hi:"जीरा", pa:"ਜੀਰਾ", cat:"grocery", unit:"kg" },
-  { id:"corianderpwd", name:"Coriander Powder / Dhania",emoji:"🟢", hi:"धनिया पाउडर", pa:"ਧਨੀਆ ਪਾਊਡਰ", cat:"grocery", unit:"kg" },
-  { id:"redchilli",    name:"Red Chilli Powder",        emoji:"🌶️", hi:"लाल मिर्च पाउडर", pa:"ਲਾਲ ਮਿਰਚ ਪਾਊਡਰ", cat:"grocery", unit:"kg" },
-  { id:"garammasala",  name:"Garam Masala",             emoji:"🌶️", hi:"गरम मसाला", pa:"ਗਰਮ ਮਸਾਲਾ", cat:"grocery", unit:"kg" },
-  { id:"nuts",         name:"Mixed Nuts / Meva",        emoji:"🥜", hi:"मेवा", pa:"ਮੇਵੇ", cat:"grocery", unit:"kg" },
-  { id:"cashew",       name:"Cashew / Kaju",            emoji:"🥜", hi:"काजू", pa:"ਕਾਜੂ", cat:"grocery", unit:"kg" },
-  { id:"almond",       name:"Almond / Badam",           emoji:"🥜", hi:"बादाम", pa:"ਬਦਾਮ", cat:"grocery", unit:"kg" },
-  { id:"dryfruit",     name:"Dry Fruits Mix",           emoji:"🍱", hi:"सूखे मेवे", pa:"ਸੁੱਕੇ ਮੇਵੇ", cat:"grocery", unit:"kg" },
-  { id:"raisins",      name:"Raisins / Kishmish",       emoji:"🟤", hi:"किशमिश", pa:"ਕਿਸ਼ਮਿਸ਼", cat:"grocery", unit:"kg" },
-  { id:"chocolate",    name:"Chocolate",                emoji:"🍫", hi:"चॉकलेट", pa:"ਚਾਕਲੇਟ", cat:"grocery", unit:"piece" },
-  { id:"biscuit",      name:"Biscuits",                 emoji:"🍪", hi:"बिस्कुट", pa:"ਬਿਸਕੁਟ", cat:"grocery", unit:"packet" },
-  { id:"namkeen",      name:"Namkeen / Snacks",         emoji:"🍿", hi:"नमकीन", pa:"ਨਮਕੀਨ", cat:"grocery", unit:"packet" },
-  { id:"chips",        name:"Chips",                    emoji:"🥔", hi:"चिप्स", pa:"ਚਿਪਸ", cat:"grocery", unit:"packet" },
-  { id:"noodles",      name:"Noodles / Maggi",          emoji:"🍜", hi:"नूडल्स", pa:"ਨੂਡਲਜ਼", cat:"grocery", unit:"packet" },
-  { id:"poha",         name:"Poha / Flattened Rice",    emoji:"🍚", hi:"पोहा", pa:"ਪੋਹਾ", cat:"grocery", unit:"kg" },
-  { id:"suji",         name:"Suji / Semolina",          emoji:"🌾", hi:"सूजी", pa:"ਸੂਜੀ", cat:"grocery", unit:"kg" },
-  { id:"soap",         name:"Soap / Sabun",             emoji:"🧼", hi:"साबुन", pa:"ਸਾਬਣ", cat:"grocery", unit:"piece" },
-  { id:"shampoo",      name:"Shampoo",                  emoji:"🧴", hi:"शैम्पू", pa:"ਸ਼ੈਂਪੂ", cat:"grocery", unit:"piece" },
-  { id:"toothpaste",   name:"Toothpaste",               emoji:"🦷", hi:"टूथपेस्ट", pa:"ਟੂਥਪੇਸਟ", cat:"grocery", unit:"piece" },
-  { id:"detergent",    name:"Detergent / Washing Powder",emoji:"🫧", hi:"डिटर्जेंट", pa:"ਡਿਟਰਜੈਂਟ", cat:"grocery", unit:"kg" },
-  { id:"matchbox",     name:"Matchbox / Maachis",       emoji:"🔥", hi:"माचिस", pa:"ਮਾਚਿਸ", cat:"grocery", unit:"piece" },
-  { id:"agarbatti",    name:"Agarbatti / Incense",      emoji:"🕯️", hi:"अगरबत्ती", pa:"ਅਗਰਬੱਤੀ", cat:"grocery", unit:"packet" },
+  // ── GROCERIES (48) ──
+  { id:"bread",        name:"Bread",                    emoji:"🍞", hi:"ब्रेड",       pa:"ਬਰੈੱਡ",     cat:"grocery", unit:"packet" },
+  { id:"milk",         name:"Milk / Doodh",             emoji:"🥛", hi:"दूध",          pa:"ਦੁੱਧ",      cat:"grocery", unit:"litre" },
+  { id:"paneer",       name:"Paneer",                   emoji:"🧀", hi:"पनीर",         pa:"ਪਨੀਰ",      cat:"grocery", unit:"kg" },
+  { id:"butter",       name:"Butter / Makhan",          emoji:"🧈", hi:"मक्खन",        pa:"ਮੱਖਣ",      cat:"grocery", unit:"gm" },
+  { id:"dahi",         name:"Dahi / Curd",              emoji:"🥛", hi:"दही",          pa:"ਦਹੀਂ",      cat:"grocery", unit:"kg" },
+  { id:"eggs",         name:"Eggs / Ande",              emoji:"🥚", hi:"अंडे",         pa:"ਆਂਡੇ",      cat:"grocery", unit:"dozen" },
+  { id:"buttermilk",   name:"Buttermilk / Chaach",      emoji:"🥤", hi:"छाछ",          pa:"ਲੱਸੀ",      cat:"grocery", unit:"litre" },
+  { id:"ghee",         name:"Ghee",                     emoji:"🫙", hi:"घी",           pa:"ਘਿਓ",       cat:"grocery", unit:"kg" },
+  { id:"oil",          name:"Cooking Oil / Tel",        emoji:"🫒", hi:"तेल",          pa:"ਤੇਲ",       cat:"grocery", unit:"litre" },
+  { id:"mustardoil",   name:"Mustard Oil / Sarson Tel", emoji:"🫙", hi:"सरसों का तेल", pa:"ਸਰ੍ਹੋਂ ਦਾ ਤੇਲ",cat:"grocery",unit:"litre" },
+  { id:"salt",         name:"Salt / Namak",             emoji:"🧂", hi:"नमक",          pa:"ਲੂਣ",       cat:"grocery", unit:"kg" },
+  { id:"flour",        name:"Wheat Flour / Atta",       emoji:"🌾", hi:"आटा",          pa:"ਆਟਾ",       cat:"grocery", unit:"kg" },
+  { id:"maida",        name:"Maida / Refined Flour",    emoji:"🌾", hi:"मैदा",         pa:"ਮੈਦਾ",      cat:"grocery", unit:"kg" },
+  { id:"besan",        name:"Besan / Gram Flour",       emoji:"🟡", hi:"बेसन",         pa:"ਬੇਸਣ",      cat:"grocery", unit:"kg" },
+  { id:"rice",         name:"Rice / Chawal",            emoji:"🍚", hi:"चावल",         pa:"ਚੌਲ",       cat:"grocery", unit:"kg" },
+  { id:"dal",          name:"Dal / Lentils",            emoji:"🫘", hi:"दाल",          pa:"ਦਾਲ",       cat:"grocery", unit:"kg" },
+  { id:"chana",        name:"Chana / Chickpeas",        emoji:"🫘", hi:"चना",          pa:"ਛੋਲੇ",      cat:"grocery", unit:"kg" },
+  { id:"rajma",        name:"Rajma / Kidney Beans",     emoji:"🫘", hi:"राजमा",        pa:"ਰਾਜਮਾ",     cat:"grocery", unit:"kg" },
+  { id:"sugar",        name:"Sugar / Cheeni",           emoji:"🍬", hi:"चीनी",         pa:"ਖੰਡ",       cat:"grocery", unit:"kg" },
+  { id:"jaggery",      name:"Jaggery / Gur",            emoji:"🟫", hi:"गुड़",          pa:"ਗੁੜ",       cat:"grocery", unit:"kg" },
+  { id:"honey",        name:"Honey / Shahad",           emoji:"🍯", hi:"शहद",          pa:"ਸ਼ਹਿਦ",     cat:"grocery", unit:"kg" },
+  { id:"tea",          name:"Tea / Chai Patti",         emoji:"🍵", hi:"चाय पत्ती",    pa:"ਚਾਹ ਪੱਤੀ",  cat:"grocery", unit:"kg" },
+  { id:"coffee",       name:"Coffee",                   emoji:"☕", hi:"कॉफ़ी",        pa:"ਕੌਫ਼ੀ",     cat:"grocery", unit:"kg" },
+  { id:"turmeric",     name:"Turmeric / Haldi",         emoji:"🟡", hi:"हल्दी",        pa:"ਹਲਦੀ",      cat:"grocery", unit:"kg" },
+  { id:"cumin",        name:"Cumin / Jeera",            emoji:"🟤", hi:"जीरा",         pa:"ਜੀਰਾ",      cat:"grocery", unit:"kg" },
+  { id:"corianderpwd", name:"Coriander Powder / Dhania",emoji:"🟢", hi:"धनिया पाउडर",  pa:"ਧਨੀਆ ਪਾਊਡਰ",cat:"grocery", unit:"kg" },
+  { id:"redchilli",    name:"Red Chilli Powder",        emoji:"🌶️", hi:"लाल मिर्च पाउडर",pa:"ਲਾਲ ਮਿਰਚ",cat:"grocery", unit:"kg" },
+  { id:"garammasala",  name:"Garam Masala",             emoji:"🌶️", hi:"गरम मसाला",    pa:"ਗਰਮ ਮਸਾਲਾ", cat:"grocery", unit:"kg" },
+  { id:"nuts",         name:"Mixed Nuts / Meva",        emoji:"🥜", hi:"मेवा",         pa:"ਮੇਵੇ",      cat:"grocery", unit:"kg" },
+  { id:"cashew",       name:"Cashew / Kaju",            emoji:"🥜", hi:"काजू",         pa:"ਕਾਜੂ",      cat:"grocery", unit:"kg" },
+  { id:"almond",       name:"Almond / Badam",           emoji:"🥜", hi:"बादाम",        pa:"ਬਦਾਮ",      cat:"grocery", unit:"kg" },
+  { id:"dryfruit",     name:"Dry Fruits Mix",           emoji:"🍱", hi:"सूखे मेवे",    pa:"ਸੁੱਕੇ ਮੇਵੇ",cat:"grocery", unit:"kg" },
+  { id:"raisins",      name:"Raisins / Kishmish",       emoji:"🟤", hi:"किशमिश",       pa:"ਕਿਸ਼ਮਿਸ਼",  cat:"grocery", unit:"kg" },
+  { id:"chocolate",    name:"Chocolate",                emoji:"🍫", hi:"चॉकलेट",       pa:"ਚਾਕਲੇਟ",    cat:"grocery", unit:"piece" },
+  { id:"biscuit",      name:"Biscuits",                 emoji:"🍪", hi:"बिस्कुट",      pa:"ਬਿਸਕੁਟ",    cat:"grocery", unit:"packet" },
+  { id:"namkeen",      name:"Namkeen / Snacks",         emoji:"🍿", hi:"नमकीन",        pa:"ਨਮਕੀਨ",     cat:"grocery", unit:"packet" },
+  { id:"chips",        name:"Chips",                    emoji:"🥔", hi:"चिप्स",        pa:"ਚਿਪਸ",      cat:"grocery", unit:"packet" },
+  { id:"noodles",      name:"Noodles / Maggi",          emoji:"🍜", hi:"नूडल्स",       pa:"ਨੂਡਲਜ਼",    cat:"grocery", unit:"packet" },
+  { id:"poha",         name:"Poha / Flattened Rice",    emoji:"🍚", hi:"पोहा",         pa:"ਪੋਹਾ",      cat:"grocery", unit:"kg" },
+  { id:"suji",         name:"Suji / Semolina",          emoji:"🌾", hi:"सूजी",         pa:"ਸੂਜੀ",      cat:"grocery", unit:"kg" },
+  { id:"soap",         name:"Soap / Sabun",             emoji:"🧼", hi:"साबुन",        pa:"ਸਾਬਣ",      cat:"grocery", unit:"piece" },
+  { id:"shampoo",      name:"Shampoo",                  emoji:"🧴", hi:"शैम्पू",       pa:"ਸ਼ੈਂਪੂ",    cat:"grocery", unit:"piece" },
+  { id:"toothpaste",   name:"Toothpaste",               emoji:"🦷", hi:"टूथपेस्ट",     pa:"ਟੂਥਪੇਸਟ",   cat:"grocery", unit:"piece" },
+  { id:"detergent",    name:"Detergent / Washing Pwd",  emoji:"🫧", hi:"डिटर्जेंट",    pa:"ਡਿਟਰਜੈਂਟ",  cat:"grocery", unit:"kg" },
+  { id:"matchbox",     name:"Matchbox / Maachis",       emoji:"🔥", hi:"माचिस",        pa:"ਮਾਚਿਸ",     cat:"grocery", unit:"piece" },
+  { id:"agarbatti",    name:"Agarbatti / Incense",      emoji:"🕯️", hi:"अगरबत्ती",     pa:"ਅਗਰਬੱਤੀ",   cat:"grocery", unit:"packet" },
 ];
 
 
 const QUICK_RATES = [10,15,20,25,30,40,50,60,70,80,100,120,140,160,180,200,250,300];
 const EMOJIS = ["🍎","🥭","🍌","🍊","🍈","🍒","🍉","🍇","🍐","❤️","🫐","🍅","🥔","🧅","🥦","🥒","🥕","🌶️","🥬","🍆","🫑","🫘","🫛","🌽","🧄"];
 const UNITS  = ["kg","g","piece","dozen","bunch","packet","500g","250g","litre"];
-
-// Extra keyword → emoji map for items not present in DEFAULT_ITEMS (used for on-the-fly
-// item creation while a vendor is building a bill — see guessItemEmoji below).
-const EXTRA_EMOJI_MAP = [
-  ["custard apple",{emoji:"🍏",cat:"fruit",unit:"kg"}],  ["sitafal",{emoji:"🍏",cat:"fruit",unit:"kg"}],
-  ["jackfruit",{emoji:"🍈",cat:"veggie",unit:"kg"}],      ["kathal",{emoji:"🍈",cat:"veggie",unit:"kg"}],
-  ["amla",{emoji:"🟢",cat:"fruit",unit:"kg"}],            ["gooseberry",{emoji:"🟢",cat:"fruit",unit:"kg"}],
-  ["moong",{emoji:"🫘",cat:"grocery",unit:"kg"}],         ["urad",{emoji:"🫘",cat:"grocery",unit:"kg"}],
-  ["masoor",{emoji:"🫘",cat:"grocery",unit:"kg"}],        ["arhar",{emoji:"🫘",cat:"grocery",unit:"kg"}],
-  ["toor",{emoji:"🫘",cat:"grocery",unit:"kg"}],          ["elaichi",{emoji:"🟢",cat:"grocery",unit:"kg"}],
-  ["cardamom",{emoji:"🟢",cat:"grocery",unit:"kg"}],      ["laung",{emoji:"🟤",cat:"grocery",unit:"kg"}],
-  ["clove",{emoji:"🟤",cat:"grocery",unit:"kg"}],         ["saunf",{emoji:"🌿",cat:"grocery",unit:"kg"}],
-  ["fennel",{emoji:"🌿",cat:"grocery",unit:"kg"}],        ["hing",{emoji:"🟡",cat:"grocery",unit:"g"}],
-  ["asafoetida",{emoji:"🟡",cat:"grocery",unit:"g"}],     ["cold drink",{emoji:"🥤",cat:"grocery",unit:"piece"}],
-  ["soft drink",{emoji:"🥤",cat:"grocery",unit:"piece"}], ["water bottle",{emoji:"💧",cat:"grocery",unit:"piece"}],
-  ["mineral water",{emoji:"💧",cat:"grocery",unit:"piece"}], ["ice cream",{emoji:"🍦",cat:"grocery",unit:"piece"}],
-  ["cheese",{emoji:"🧀",cat:"grocery",unit:"packet"}],    ["juice",{emoji:"🧃",cat:"grocery",unit:"litre"}],
-  ["chicken",{emoji:"🍗",cat:"grocery",unit:"kg"}],       ["mutton",{emoji:"🍖",cat:"grocery",unit:"kg"}],
-  ["fish",{emoji:"🐟",cat:"grocery",unit:"kg"}],          ["prawn",{emoji:"🦐",cat:"grocery",unit:"kg"}],
-  ["papad",{emoji:"🫓",cat:"grocery",unit:"packet"}],     ["pickle",{emoji:"🫙",cat:"grocery",unit:"kg"}],
-  ["achar",{emoji:"🫙",cat:"grocery",unit:"kg"}],         ["jam",{emoji:"🍯",cat:"grocery",unit:"piece"}],
-  ["ketchup",{emoji:"🍅",cat:"grocery",unit:"piece"}],    ["sauce",{emoji:"🍅",cat:"grocery",unit:"piece"}],
-  ["vinegar",{emoji:"🍶",cat:"grocery",unit:"litre"}],    ["candle",{emoji:"🕯️",cat:"grocery",unit:"piece"}],
-  ["tissue",{emoji:"🧻",cat:"grocery",unit:"packet"}],    ["shaving",{emoji:"🪒",cat:"grocery",unit:"piece"}],
-  ["toothbrush",{emoji:"🪥",cat:"grocery",unit:"piece"}], ["diaper",{emoji:"🍼",cat:"grocery",unit:"packet"}],
-  ["battery",{emoji:"🔋",cat:"grocery",unit:"piece"}],    ["bulb",{emoji:"💡",cat:"grocery",unit:"piece"}],
-  ["curd",{emoji:"🥛",cat:"grocery",unit:"kg"}],          ["lassi",{emoji:"🥤",cat:"grocery",unit:"litre"}],
-  ["sitaphal",{emoji:"🍏",cat:"fruit",unit:"kg"}],        ["chikoo",{emoji:"🟤",cat:"fruit",unit:"kg"}],
-  ["sapota",{emoji:"🟤",cat:"fruit",unit:"kg"}],          ["avocado",{emoji:"🥑",cat:"fruit",unit:"piece"}],
-  ["bottlegourd",{emoji:"🥒",cat:"veggie",unit:"piece"}], ["ridgegourd",{emoji:"🥒",cat:"veggie",unit:"kg"}],
-  ["torai",{emoji:"🥒",cat:"veggie",unit:"kg"}],          ["capsicum",{emoji:"🫑",cat:"veggie",unit:"kg"}],
-  ["shimla",{emoji:"🫑",cat:"veggie",unit:"kg"}],
-];
-
-// Guess the best emoji/category/unit for a freely-typed item name. Vendors can search for
-// an item while building a bill; if it isn't in their catalog yet, this powers the
-// "add on the fly" quick-add card so they never have to pick an emoji manually.
-function guessItemEmoji(query){
-  const q = (query||"").trim().toLowerCase();
-  if(!q) return {emoji:"🧺", cat:"grocery", unit:"kg"};
-  // 1) Exact match against a name-part / hi / pa in the full master catalog
-  for(const it of DEFAULT_ITEMS){
-    const parts = it.name.toLowerCase().split("/").map(s=>s.trim());
-    if(parts.includes(q) || it.hi===query.trim() || it.pa===query.trim()){
-      return {emoji:it.emoji, cat:it.cat, unit:it.unit};
-    }
-  }
-  // 2) Substring match either direction against the master catalog
-  for(const it of DEFAULT_ITEMS){
-    const parts = it.name.toLowerCase().split("/").map(s=>s.trim());
-    if(parts.some(p=>p.length>1 && (p.includes(q) || q.includes(p)))){
-      return {emoji:it.emoji, cat:it.cat, unit:it.unit};
-    }
-  }
-  // 3) Extra keyword map for common items outside the default catalog
-  for(const [key,val] of EXTRA_EMOJI_MAP){
-    if(q.includes(key)) return val;
-  }
-  // 4) Fallback — generic basket emoji, grocery category
-  return {emoji:"🧺", cat:"grocery", unit:"kg"};
-}
 
 const C = {
   navy:"#0A3D2E", green:"#1B6B3A", lgreen:"#25A244", gold:"#F59E0B",
@@ -612,10 +581,6 @@ export default function App() {
   const [customRate,   setCustomRate]  = useState("");
   const [toast,        setToast]       = useState(null);
   const [billItems,    setBillItems]   = useState([]);
-  const [billSearch,   setBillSearch]  = useState("");   // search box inside Bill tab
-  const [quickRate,    setQuickRate]   = useState("");   // rate typed for a quick-add / quick-set item
-  const [quickEmoji,   setQuickEmoji]  = useState(null); // manual emoji override for quick-add (null = auto-guess)
-  const [quickEmojiPick,setQuickEmojiPick]=useState(false);
   const [custName,     setCustName]    = useState("");
   const [custPhone,    setCustPhone]   = useState("");
   const [previewBill,  setPreviewBill] = useState(null);
@@ -680,64 +645,6 @@ export default function App() {
   const trialActive= trialDays > 0;
   const isPaid     = paidMonth === monthKey;
   const canUse     = trialActive || isPaid;
-
-  // ── APP INSTALL (PWA — "download like Play Store") ──
-  const [installPrompt, setInstallPrompt] = useState(null); // captured beforeinstallprompt event (Android/Chrome/Edge)
-  const [isInstalled,   setIsInstalled]   = useState(false);
-  const [showIosHelp,   setShowIosHelp]   = useState(false);
-  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-
-  useEffect(()=>{
-    const already = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-    if(already || navigator.standalone) setIsInstalled(true);
-    const onBeforeInstall = (e)=>{ e.preventDefault(); setInstallPrompt(e); };
-    const onInstalled = ()=>{ setIsInstalled(true); setInstallPrompt(null); notify("✅ App install ho gaya!"); };
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    window.addEventListener('appinstalled', onInstalled);
-    return ()=>{
-      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-      window.removeEventListener('appinstalled', onInstalled);
-    };
-  }, []);
-
-  async function installApp(){
-    if(installPrompt){
-      installPrompt.prompt();
-      const choice = await installPrompt.userChoice;
-      if(choice.outcome === 'accepted') setIsInstalled(true);
-      setInstallPrompt(null);
-      return;
-    }
-    if(isIos){ setShowIosHelp(true); return; }
-    notify("Browser ke menu se 'Add to Home Screen' / 'Install App' chuno", "error");
-  }
-
-  function IosInstallHelp(){
-    if(!showIosHelp) return null;
-    return (
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}} onClick={()=>setShowIosHelp(false)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:"white",borderRadius:"22px 22px 0 0",padding:"22px 20px 28px",width:"100%",maxWidth:420,boxShadow:"0 -4px 24px rgba(0,0,0,0.25)"}}>
-          <div style={{fontWeight:900,fontSize:17,color:C.navy,marginBottom:14}}>📲 iPhone par Install karo</div>
-          <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:12}}>
-            <div style={{fontSize:22}}>1️⃣</div>
-            <div style={{fontSize:14,color:C.dgray}}>Safari mein neeche <b>Share</b> icon (⬆️ box se arrow) dabao</div>
-          </div>
-          <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:12}}>
-            <div style={{fontSize:22}}>2️⃣</div>
-            <div style={{fontSize:14,color:C.dgray}}><b>"Add to Home Screen"</b> chuno</div>
-          </div>
-          <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:18}}>
-            <div style={{fontSize:22}}>3️⃣</div>
-            <div style={{fontSize:14,color:C.dgray}}><b>"Add"</b> dabao — FreshBill ka icon home screen par aa jayega, bilkul app ki tarah!</div>
-          </div>
-          <button onClick={()=>setShowIosHelp(false)}
-            style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:C.green,color:"white",fontWeight:800,fontSize:15,cursor:"pointer"}}>
-            Samajh gaya
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // ── LOAD ──
   useEffect(()=>{
@@ -907,39 +814,6 @@ export default function App() {
   }
   function updateBillQty(id,qty){ if(qty<=0){setBillItems(p=>p.filter(x=>x.id!==id));return;} setBillItems(p=>p.map(x=>x.id===id?{...x,qty}:x)); }
   const billTotal = billItems.reduce((s,x)=>s+x.qty*x.rate,0);
-
-  // Vendor searched for an item that already exists in their catalog but has no rate set yet —
-  // set the rate right there and drop it straight into the bill, no tab-switching needed.
-  function quickSetRateAndBill(item){
-    if(!canUse){ setScreen("paywall"); return; }
-    const rateVal = Number(quickRate);
-    if(!rateVal || rateVal<=0){ notify("Pehle rate daalo","error"); return; }
-    setRate(item.id, rateVal);
-    setBillItems(p=>{ const ex=p.find(x=>x.id===item.id); if(ex) return p.map(x=>x.id===item.id?{...x,qty:x.qty+1}:x); return [...p,{...item,qty:1,rate:rateVal}]; });
-    notify(`🛒 ${item.name.split("/")[0]} add!`);
-    setBillSearch(""); setQuickRate(""); setQuickEmoji(null); setQuickEmojiPick(false);
-  }
-
-  // Vendor searched for a brand-new item that isn't in the catalog at all — create it on the
-  // fly (auto-guessed emoji unless the vendor picked one manually), set its rate, and add it
-  // straight into the bill being built. No separate "add item" step required.
-  function quickAddAndBill(){
-    if(!canUse){ setScreen("paywall"); return; }
-    const name = billSearch.trim();
-    if(!name) return;
-    const rateVal = Number(quickRate);
-    if(!rateVal || rateVal<=0){ notify("Pehle rate daalo","error"); return; }
-    const guess = guessItemEmoji(name);
-    const emoji = quickEmoji || guess.emoji;
-    const id = "c_"+Date.now();
-    const newItem = { id, name, emoji, cat: guess.cat, unit: guess.unit };
-    setItems(p=>[...p, newItem]);
-    setRates(p=>({...p,[id]:rateVal}));
-    sbSyncRate(deviceId, newItem, rateVal);
-    setBillItems(p=>[...p, {...newItem, qty:1, rate:rateVal}]);
-    notify(`✅ ${name} naya item add ho gaya aur bill mein daal diya!`);
-    setBillSearch(""); setQuickRate(""); setQuickEmoji(null); setQuickEmojiPick(false);
-  }
 
   // ── CUSTOMER LIST ──
   function custToggle(item){
@@ -1219,7 +1093,7 @@ export default function App() {
       <div style={{fontSize:60,marginBottom:6}}>🥬</div>
       <div style={{color:"white",fontSize:28,fontWeight:900}}>FreshBill</div>
       <div style={{color:"#A7F3D0",fontSize:14,marginTop:6,marginBottom:38,textAlign:"center"}}>Aap kaun hain? / Who are you?</div>
-      <button onClick={()=>{setRole("vendor");setScreen("home");setTab("rates");}}
+      <button onClick={()=>{setRole("vendor");setScreen("home");setTab("rates");setBillItems([]);setCustName("");setCustPhone("");setEditingId(null);}}
         style={{width:"100%",maxWidth:340,background:"white",border:"none",borderRadius:20,padding:"22px 20px",marginBottom:16,cursor:"pointer",textAlign:"left",boxShadow:"0 6px 24px rgba(0,0,0,0.2)"}}>
         <div style={{fontSize:34}}>🧺</div>
         <div style={{fontWeight:900,fontSize:19,color:C.navy,marginTop:6}}>Main Dukaandaar hoon</div>
@@ -1248,18 +1122,6 @@ export default function App() {
         style={{width:"100%",maxWidth:340,marginTop:20,padding:"14px 20px",borderRadius:16,border:"2px solid rgba(255,255,255,0.4)",background:"rgba(255,255,255,0.1)",color:"white",fontWeight:800,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
         🔐 Admin Panel (Owner Only)
       </button>
-
-      {!isInstalled && (
-        <button onClick={installApp}
-          style={{width:"100%",maxWidth:340,marginTop:14,padding:"14px 20px",borderRadius:16,border:"none",background:C.gold,color:"white",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 6px 20px rgba(245,158,11,0.4)"}}>
-          📲 App Install Karo — Free
-        </button>
-      )}
-      {isInstalled && (
-        <div style={{color:"#A7F3D0",fontSize:12,marginTop:14,fontWeight:700}}>✅ App install ho chuka hai</div>
-      )}
-
-      <IosInstallHelp/>
 
       <div style={{color:"#A7F3D0",fontSize:11,marginTop:24,opacity:0.6}}>Designed by <b>JK Technologies</b> ™</div>
     </div>
@@ -1665,7 +1527,6 @@ export default function App() {
     return (
       <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:custList.length?200:24}}>
         {toast && <Toast {...toast}/>}
-        <IosInstallHelp/>
 
         {/* Welcome banner for returning grahak */}
         {showWelcome && custOwnName && (
@@ -1682,12 +1543,6 @@ export default function App() {
               <div style={{fontSize:12,opacity:0.8,marginTop:2}}>Jo chahiye chuno, vendor ko bhejo</div>
             </div>
             <div style={{display:"flex",gap:6}}>
-              {!isInstalled && (
-                <button onClick={installApp}
-                  style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 10px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
-                  📲 Install
-                </button>
-              )}
               <button onClick={()=>{setCompareItem(null);setCompareRates([]);setCompareItems([]);setScreen("compareRates");}}
                 style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"8px 10px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
                 📊 Compare
@@ -2008,7 +1863,6 @@ export default function App() {
   return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"Segoe UI,sans-serif",paddingBottom:130}}>
       {toast && <Toast {...toast}/>}
-      <IosInstallHelp/>
 
       {/* Welcome banner for returning vendor */}
       {showWelcome && shopName && shopName!=="JK Technologies — Admin" && (
@@ -2032,13 +1886,6 @@ export default function App() {
             )}
           </div>
           <div style={{display:"flex",gap:6}}>
-            {!isInstalled && (
-              <button onClick={installApp}
-                style={{background:"rgba(255,255,255,0.25)",border:"2px solid rgba(255,255,255,0.5)",color:"white",borderRadius:10,padding:"6px 11px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}
-                title="App ko phone mein install karo">
-                📲 Install
-              </button>
-            )}
             <button onClick={()=>setAppLang(appLang==="en"?"hi":appLang==="hi"?"pa":"en")}
               style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",borderRadius:10,padding:"6px 11px",fontWeight:800,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}
               title="Bhasha badlo / Change language">
@@ -2428,9 +2275,9 @@ export default function App() {
         <div style={{padding:"12px 12px 0"}}>
           {!canUse && (
             <div style={{background:C.lred,borderRadius:14,padding:"14px 16px",marginBottom:14,textAlign:"center"}}>
-              <div style={{fontWeight:800,color:C.red,fontSize:15}}>⚠️ Trial khatam ho gaya</div>
+              <div style={{fontWeight:800,color:C.red,fontSize:15}}>Trial khatam ho gaya</div>
               <div style={{fontSize:13,color:C.red,marginTop:4}}>Bill banane ke liye ₹30/month pay karo</div>
-              <button onClick={()=>setScreen("paywall")} style={{marginTop:10,padding:"9px 20px",borderRadius:12,border:"none",background:C.red,color:"white",fontWeight:700,cursor:"pointer"}}>Unlock Karo →</button>
+              <button onClick={()=>setScreen("paywall")} style={{marginTop:10,padding:"9px 20px",borderRadius:12,border:"none",background:C.red,color:"white",fontWeight:700,cursor:"pointer"}}>Unlock Karo</button>
             </div>
           )}
           {editingId && (
@@ -2447,101 +2294,92 @@ export default function App() {
               style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none"}}/>
           </Card>
 
-          {(()=>{
-            const q = billSearch.trim().toLowerCase();
-            const billMatches = q ? ratedItems.filter(i=>i.name.toLowerCase().includes(q) || (i.hi||"").includes(billSearch.trim()) || (i.pa||"").includes(billSearch.trim())) : ratedItems;
-            // An item that already exists in the catalog (any category, rated or not) matching the search — but has no rate yet
-            const unratedMatch = q ? items.find(i=>!rates[i.id] && (i.name.toLowerCase().includes(q) || (i.hi||"").includes(billSearch.trim()) || (i.pa||"").includes(billSearch.trim()))) : null;
-            // Totally unknown item — nothing in the whole catalog matches at all
-            const noMatchAtAll = q && billMatches.length===0 && !unratedMatch;
-            const guess = q ? guessItemEmoji(billSearch) : null;
-            const previewEmoji = quickEmoji || (guess ? guess.emoji : "🧺");
-            return (<>
-              <Card style={{marginBottom:14}}>
-                <input value={billSearch}
-                  onChange={e=>{ setBillSearch(e.target.value); setQuickEmoji(null); setQuickEmojiPick(false); }}
-                  placeholder="🔍 Item dhoondo... nahi mila to turant add karo"
-                  style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none"}}/>
-              </Card>
+          {/* Search + Add items to bill */}
+          <div style={{fontWeight:700,color:C.navy,marginBottom:8}}>🔍 Items dhoondo aur bill mein daalo:</div>
+          <input value={rateSearch} onChange={e=>setRateSearch(e.target.value)} placeholder="🔍 Item search karo... (jaise: tamatar, kamal kakdi)"
+            style={{width:"100%",padding:"11px 13px",borderRadius:12,border:`1.5px solid ${C.lgray}`,fontSize:14,marginBottom:10,boxSizing:"border-box",outline:"none"}}/>
 
-              {ratedItems.length===0 && !q && (
+          {(()=>{
+            const q = rateSearch.trim().toLowerCase();
+            // Show ALL items (with or without rates) when searching, rated items when not searching
+            const pool = q ? items.filter(i=>
+              i.name.toLowerCase().includes(q) ||
+              (i.hi||"").toLowerCase().includes(q) ||
+              (i.pa||"").toLowerCase().includes(q) ||
+              i.id.includes(q)
+            ) : ratedItems;
+            const noMatch = q && pool.length === 0;
+
+            return (<>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+                {pool.slice(0,20).map(item=>{
+                  const inB=billItems.find(x=>x.id===item.id);
+                  const rate = rates[item.id]||0;
+                  return (
+                    <div key={item.id} onClick={()=>{
+                      if(!rate){
+                        // No rate set — prompt to enter rate on the fly
+                        const r = prompt(`${item.emoji} ${itemName(item,appLang)} ka rate daalo (₹ per ${item.unit}):`);
+                        const rateNum = parseFloat(r);
+                        if(!r || isNaN(rateNum) || rateNum<=0) return;
+                        setRate(item.id, rateNum);
+                        addToBill({...item, rate:rateNum});
+                        notify(`✅ ${itemName(item,appLang)} — ₹${rateNum}/${item.unit} set + bill mein add`);
+                      } else {
+                        addToBill(item);
+                      }
+                    }}
+                      style={{background:inB?"#E8F5E0":"white",borderRadius:14,padding:"12px 8px",boxShadow:"0 1px 4px rgba(0,0,0,.06)",cursor:"pointer",textAlign:"center",border:`1.5px solid ${inB?C.green:C.lgray}`}}>
+                      <div style={{fontSize:24}}>{item.emoji}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:C.navy,marginTop:4,lineHeight:1.2}}>{itemName(item, appLang)}</div>
+                      {rate ? <div style={{fontSize:11,color:C.green,fontWeight:800,marginTop:2}}>₹{rate}/{item.unit}</div>
+                            : <div style={{fontSize:10,color:C.gray,marginTop:2}}>Tap — rate daalo</div>}
+                      {inB && <div style={{fontSize:10,color:C.green,fontWeight:700,marginTop:2}}>✓ {inB.qty} {item.unit}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* No match — add custom item */}
+              {noMatch && (
+                <Card>
+                  <div style={{textAlign:"center",padding:"10px 0"}}>
+                    <div style={{fontSize:28}}>🔍</div>
+                    <div style={{fontWeight:700,color:C.navy,marginTop:6}}>"{rateSearch}" nahi mila</div>
+                    <div style={{fontSize:12,color:C.gray,marginTop:4,marginBottom:10}}>Custom item add karo — apna naam, rate daalo</div>
+                    <button onClick={()=>{
+                      const name = rateSearch.trim();
+                      if(!name) return;
+                      const rateVal = prompt(`"${name}" ka rate daalo (₹):`);
+                      const r = parseFloat(rateVal);
+                      if(!rateVal || isNaN(r) || r<=0){ notify("Sahi rate daalo","error"); return; }
+                      const unitChoice = prompt("Unit kya hai? (kg, piece, bunch, dozen, litre, packet, gm)") || "kg";
+                      const customId = "custom_"+Date.now();
+                      const customItem = { id:customId, name:name, emoji:"🛒", hi:"", pa:"", cat:"veggie", unit:unitChoice.trim().toLowerCase() };
+                      // Add to items list for this session
+                      setItems(p=>[...p, customItem]);
+                      setRate(customId, r);
+                      addToBill({...customItem, rate:r});
+                      setRateSearch("");
+                      notify(`✅ "${name}" — ₹${r}/${unitChoice} add ho gaya!`);
+                    }} style={{padding:"11px 24px",borderRadius:12,border:"none",background:C.green,color:"white",fontWeight:800,fontSize:14,cursor:"pointer"}}>
+                      ➕ "{rateSearch}" Custom Add Karo
+                    </button>
+                  </div>
+                </Card>
+              )}
+
+              {!q && pool.length===0 && (
                 <Card><div style={{textAlign:"center",padding:"20px 0",color:C.gray}}>
                   <div style={{fontSize:36}}>📋</div>
-                  <div style={{fontWeight:600,marginTop:8}}>Koi item ready nahi hai</div>
-                  <div style={{fontSize:12,marginTop:4}}>Upar search karke naya item turant add karo, ya</div>
-                  <button onClick={()=>setTab("rates")} style={{marginTop:12,padding:"10px 20px",borderRadius:12,border:"none",background:C.green,color:"white",fontWeight:700,cursor:"pointer"}}>Rates Tab →</button>
+                  <div style={{fontWeight:600,marginTop:8}}>Pehle rates set karo ya upar search karo</div>
+                  <button onClick={()=>setTab("rates")} style={{marginTop:12,padding:"10px 20px",borderRadius:12,border:"none",background:C.green,color:"white",fontWeight:700,cursor:"pointer"}}>Rates Tab</button>
                 </div></Card>
-              )}
-
-              {billMatches.length>0 && (
-                <>
-                  <div style={{fontWeight:700,color:C.navy,marginBottom:8}}>Items chunno:</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-                    {billMatches.map(item=>{
-                      const inB=billItems.find(x=>x.id===item.id);
-                      return (
-                        <div key={item.id} onClick={()=>addToBill(item)}
-                          style={{background:"white",borderRadius:14,padding:"12px",boxShadow:inB?`0 0 0 2.5px ${C.lgreen}`:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",position:"relative",opacity:canUse?1:0.5}}>
-                          {inB && <div style={{position:"absolute",top:8,right:8,background:C.lgreen,color:"white",borderRadius:99,width:20,height:20,fontSize:11,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{inB.qty}</div>}
-                          <div style={{fontSize:28,textAlign:"center"}}>{item.emoji}</div>
-                          <div style={{fontSize:12,fontWeight:700,color:C.navy,textAlign:"center",marginTop:4,lineHeight:1.2}}>{itemName(item, appLang)}</div>
-                          <div style={{fontSize:13,fontWeight:900,color:C.green,textAlign:"center",marginTop:4}}>{inr(rates[item.id])}/{item.unit}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              {/* Item exists in catalog but has no rate set — set it right here and drop into bill */}
-              {unratedMatch && (
-                <Card style={{marginBottom:14,border:`2px dashed ${C.gold}`}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                    <span style={{fontSize:28}}>{unratedMatch.emoji}</span>
-                    <div>
-                      <div style={{fontWeight:800,color:C.navy,fontSize:14}}>{itemName(unratedMatch, appLang)}</div>
-                      <div style={{fontSize:11,color:C.gray}}>Rate abhi set nahi hai — daal ke seedha bill mein add karo</div>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:8}}>
-                    <input type="number" placeholder={`Rate ₹/${unratedMatch.unit}`} value={quickRate} onChange={e=>setQuickRate(e.target.value)}
-                      style={{flex:1,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,outline:"none"}}/>
-                    <button onClick={()=>quickSetRateAndBill(unratedMatch)}
-                      style={{padding:"10px 16px",borderRadius:10,border:"none",background:C.green,color:"white",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap"}}>
-                      🛒 Add
-                    </button>
-                  </div>
-                </Card>
-              )}
-
-              {/* Nothing in the catalog matches at all — create a brand-new item on the fly */}
-              {noMatchAtAll && (
-                <Card style={{marginBottom:14,border:`2px dashed ${C.lgreen}`}}>
-                  <div style={{fontWeight:800,color:C.navy,fontSize:14,marginBottom:2}}>➕ Naya Item: "{billSearch.trim()}"</div>
-                  <div style={{fontSize:11,color:C.gray,marginBottom:10}}>List mein nahi mila — emoji khud-ba-khud chun liya gaya hai, chaho to badal do</div>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                    <button onClick={()=>setQuickEmojiPick(!quickEmojiPick)}
-                      style={{fontSize:28,background:C.lgray,border:"none",borderRadius:10,padding:"6px 12px",cursor:"pointer"}}>{previewEmoji}</button>
-                    <div style={{fontSize:12,color:C.gray}}>Emoji badalne ke liye tap karo</div>
-                  </div>
-                  {quickEmojiPick && (
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10,background:C.lgray,borderRadius:10,padding:10}}>
-                      {EMOJIS.map(e=><button key={e} onClick={()=>{setQuickEmoji(e);setQuickEmojiPick(false);}} style={{fontSize:22,background:previewEmoji===e?"#C8E6C9":"transparent",border:"none",borderRadius:8,padding:4,cursor:"pointer"}}>{e}</button>)}
-                    </div>
-                  )}
-                  <div style={{display:"flex",gap:8}}>
-                    <input type="number" placeholder={`Rate ₹/${guess.unit}`} value={quickRate} onChange={e=>setQuickRate(e.target.value)}
-                      style={{flex:1,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,outline:"none"}}/>
-                    <button onClick={quickAddAndBill}
-                      style={{padding:"10px 16px",borderRadius:10,border:"none",background:C.green,color:"white",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap"}}>
-                      🛒 Add
-                    </button>
-                  </div>
-                </Card>
               )}
             </>);
           })()}
-
+                      style={{background:"white",borderRadius:14,padding:"12px",boxShadow:inB?`0 0 0 2.5px ${C.lgreen}`:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",position:"relative",opacity:canUse?1:0.5}}>
+                      {inB && <div style={{position:"absolute",top:8,right:8,background:C.lgreen,color:"white",borderRadius:99,width:20,height:20,fontSize:11,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{inB.qty}</div>}
           {billItems.length>0 && (
             <Card>
               <div style={{fontWeight:700,color:C.navy,marginBottom:10}}>🛒 Bill Items</div>
