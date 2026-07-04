@@ -496,6 +496,67 @@ const QUICK_RATES = [10,15,20,25,30,40,50,60,70,80,100,120,140,160,180,200,250,3
 const EMOJIS = ["🍎","🥭","🍌","🍊","🍈","🍒","🍉","🍇","🍐","❤️","🫐","🍅","🥔","🧅","🥦","🥒","🥕","🌶️","🥬","🍆","🫑","🫘","🫛","🌽","🧄"];
 const UNITS  = ["kg","g","piece","dozen","bunch","packet","500g","250g","litre"];
 
+// Extra keyword → emoji map for items not present in DEFAULT_ITEMS (used for on-the-fly
+// item creation while a vendor is building a bill — see guessItemEmoji below).
+const EXTRA_EMOJI_MAP = [
+  ["custard apple",{emoji:"🍏",cat:"fruit",unit:"kg"}],  ["sitafal",{emoji:"🍏",cat:"fruit",unit:"kg"}],
+  ["jackfruit",{emoji:"🍈",cat:"veggie",unit:"kg"}],      ["kathal",{emoji:"🍈",cat:"veggie",unit:"kg"}],
+  ["amla",{emoji:"🟢",cat:"fruit",unit:"kg"}],            ["gooseberry",{emoji:"🟢",cat:"fruit",unit:"kg"}],
+  ["moong",{emoji:"🫘",cat:"grocery",unit:"kg"}],         ["urad",{emoji:"🫘",cat:"grocery",unit:"kg"}],
+  ["masoor",{emoji:"🫘",cat:"grocery",unit:"kg"}],        ["arhar",{emoji:"🫘",cat:"grocery",unit:"kg"}],
+  ["toor",{emoji:"🫘",cat:"grocery",unit:"kg"}],          ["elaichi",{emoji:"🟢",cat:"grocery",unit:"kg"}],
+  ["cardamom",{emoji:"🟢",cat:"grocery",unit:"kg"}],      ["laung",{emoji:"🟤",cat:"grocery",unit:"kg"}],
+  ["clove",{emoji:"🟤",cat:"grocery",unit:"kg"}],         ["saunf",{emoji:"🌿",cat:"grocery",unit:"kg"}],
+  ["fennel",{emoji:"🌿",cat:"grocery",unit:"kg"}],        ["hing",{emoji:"🟡",cat:"grocery",unit:"g"}],
+  ["asafoetida",{emoji:"🟡",cat:"grocery",unit:"g"}],     ["cold drink",{emoji:"🥤",cat:"grocery",unit:"piece"}],
+  ["soft drink",{emoji:"🥤",cat:"grocery",unit:"piece"}], ["water bottle",{emoji:"💧",cat:"grocery",unit:"piece"}],
+  ["mineral water",{emoji:"💧",cat:"grocery",unit:"piece"}], ["ice cream",{emoji:"🍦",cat:"grocery",unit:"piece"}],
+  ["cheese",{emoji:"🧀",cat:"grocery",unit:"packet"}],    ["juice",{emoji:"🧃",cat:"grocery",unit:"litre"}],
+  ["chicken",{emoji:"🍗",cat:"grocery",unit:"kg"}],       ["mutton",{emoji:"🍖",cat:"grocery",unit:"kg"}],
+  ["fish",{emoji:"🐟",cat:"grocery",unit:"kg"}],          ["prawn",{emoji:"🦐",cat:"grocery",unit:"kg"}],
+  ["papad",{emoji:"🫓",cat:"grocery",unit:"packet"}],     ["pickle",{emoji:"🫙",cat:"grocery",unit:"kg"}],
+  ["achar",{emoji:"🫙",cat:"grocery",unit:"kg"}],         ["jam",{emoji:"🍯",cat:"grocery",unit:"piece"}],
+  ["ketchup",{emoji:"🍅",cat:"grocery",unit:"piece"}],    ["sauce",{emoji:"🍅",cat:"grocery",unit:"piece"}],
+  ["vinegar",{emoji:"🍶",cat:"grocery",unit:"litre"}],    ["candle",{emoji:"🕯️",cat:"grocery",unit:"piece"}],
+  ["tissue",{emoji:"🧻",cat:"grocery",unit:"packet"}],    ["shaving",{emoji:"🪒",cat:"grocery",unit:"piece"}],
+  ["toothbrush",{emoji:"🪥",cat:"grocery",unit:"piece"}], ["diaper",{emoji:"🍼",cat:"grocery",unit:"packet"}],
+  ["battery",{emoji:"🔋",cat:"grocery",unit:"piece"}],    ["bulb",{emoji:"💡",cat:"grocery",unit:"piece"}],
+  ["curd",{emoji:"🥛",cat:"grocery",unit:"kg"}],          ["lassi",{emoji:"🥤",cat:"grocery",unit:"litre"}],
+  ["sitaphal",{emoji:"🍏",cat:"fruit",unit:"kg"}],        ["chikoo",{emoji:"🟤",cat:"fruit",unit:"kg"}],
+  ["sapota",{emoji:"🟤",cat:"fruit",unit:"kg"}],          ["avocado",{emoji:"🥑",cat:"fruit",unit:"piece"}],
+  ["bottlegourd",{emoji:"🥒",cat:"veggie",unit:"piece"}], ["ridgegourd",{emoji:"🥒",cat:"veggie",unit:"kg"}],
+  ["torai",{emoji:"🥒",cat:"veggie",unit:"kg"}],          ["capsicum",{emoji:"🫑",cat:"veggie",unit:"kg"}],
+  ["shimla",{emoji:"🫑",cat:"veggie",unit:"kg"}],
+];
+
+// Guess the best emoji/category/unit for a freely-typed item name. Vendors can search for
+// an item while building a bill; if it isn't in their catalog yet, this powers the
+// "add on the fly" quick-add card so they never have to pick an emoji manually.
+function guessItemEmoji(query){
+  const q = (query||"").trim().toLowerCase();
+  if(!q) return {emoji:"🧺", cat:"grocery", unit:"kg"};
+  // 1) Exact match against a name-part / hi / pa in the full master catalog
+  for(const it of DEFAULT_ITEMS){
+    const parts = it.name.toLowerCase().split("/").map(s=>s.trim());
+    if(parts.includes(q) || it.hi===query.trim() || it.pa===query.trim()){
+      return {emoji:it.emoji, cat:it.cat, unit:it.unit};
+    }
+  }
+  // 2) Substring match either direction against the master catalog
+  for(const it of DEFAULT_ITEMS){
+    const parts = it.name.toLowerCase().split("/").map(s=>s.trim());
+    if(parts.some(p=>p.length>1 && (p.includes(q) || q.includes(p)))){
+      return {emoji:it.emoji, cat:it.cat, unit:it.unit};
+    }
+  }
+  // 3) Extra keyword map for common items outside the default catalog
+  for(const [key,val] of EXTRA_EMOJI_MAP){
+    if(q.includes(key)) return val;
+  }
+  // 4) Fallback — generic basket emoji, grocery category
+  return {emoji:"🧺", cat:"grocery", unit:"kg"};
+}
+
 const C = {
   navy:"#0A3D2E", green:"#1B6B3A", lgreen:"#25A244", gold:"#F59E0B",
   lgold:"#FEF3C7", bg:"#F0FAF4", white:"#FFFFFF", gray:"#6B7280",
@@ -551,6 +612,10 @@ export default function App() {
   const [customRate,   setCustomRate]  = useState("");
   const [toast,        setToast]       = useState(null);
   const [billItems,    setBillItems]   = useState([]);
+  const [billSearch,   setBillSearch]  = useState("");   // search box inside Bill tab
+  const [quickRate,    setQuickRate]   = useState("");   // rate typed for a quick-add / quick-set item
+  const [quickEmoji,   setQuickEmoji]  = useState(null); // manual emoji override for quick-add (null = auto-guess)
+  const [quickEmojiPick,setQuickEmojiPick]=useState(false);
   const [custName,     setCustName]    = useState("");
   const [custPhone,    setCustPhone]   = useState("");
   const [previewBill,  setPreviewBill] = useState(null);
@@ -784,6 +849,39 @@ export default function App() {
   }
   function updateBillQty(id,qty){ if(qty<=0){setBillItems(p=>p.filter(x=>x.id!==id));return;} setBillItems(p=>p.map(x=>x.id===id?{...x,qty}:x)); }
   const billTotal = billItems.reduce((s,x)=>s+x.qty*x.rate,0);
+
+  // Vendor searched for an item that already exists in their catalog but has no rate set yet —
+  // set the rate right there and drop it straight into the bill, no tab-switching needed.
+  function quickSetRateAndBill(item){
+    if(!canUse){ setScreen("paywall"); return; }
+    const rateVal = Number(quickRate);
+    if(!rateVal || rateVal<=0){ notify("Pehle rate daalo","error"); return; }
+    setRate(item.id, rateVal);
+    setBillItems(p=>{ const ex=p.find(x=>x.id===item.id); if(ex) return p.map(x=>x.id===item.id?{...x,qty:x.qty+1}:x); return [...p,{...item,qty:1,rate:rateVal}]; });
+    notify(`🛒 ${item.name.split("/")[0]} add!`);
+    setBillSearch(""); setQuickRate(""); setQuickEmoji(null); setQuickEmojiPick(false);
+  }
+
+  // Vendor searched for a brand-new item that isn't in the catalog at all — create it on the
+  // fly (auto-guessed emoji unless the vendor picked one manually), set its rate, and add it
+  // straight into the bill being built. No separate "add item" step required.
+  function quickAddAndBill(){
+    if(!canUse){ setScreen("paywall"); return; }
+    const name = billSearch.trim();
+    if(!name) return;
+    const rateVal = Number(quickRate);
+    if(!rateVal || rateVal<=0){ notify("Pehle rate daalo","error"); return; }
+    const guess = guessItemEmoji(name);
+    const emoji = quickEmoji || guess.emoji;
+    const id = "c_"+Date.now();
+    const newItem = { id, name, emoji, cat: guess.cat, unit: guess.unit };
+    setItems(p=>[...p, newItem]);
+    setRates(p=>({...p,[id]:rateVal}));
+    sbSyncRate(deviceId, newItem, rateVal);
+    setBillItems(p=>[...p, {...newItem, qty:1, rate:rateVal}]);
+    notify(`✅ ${name} naya item add ho gaya aur bill mein daal diya!`);
+    setBillSearch(""); setQuickRate(""); setQuickEmoji(null); setQuickEmojiPick(false);
+  }
 
   // ── CUSTOMER LIST ──
   function custToggle(item){
@@ -2264,31 +2362,100 @@ export default function App() {
               style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none"}}/>
           </Card>
 
-          {ratedItems.length===0 ? (
-            <Card><div style={{textAlign:"center",padding:"20px 0",color:C.gray}}>
-              <div style={{fontSize:36}}>📋</div>
-              <div style={{fontWeight:600,marginTop:8}}>Pehle rates set karo</div>
-              <button onClick={()=>setTab("rates")} style={{marginTop:12,padding:"10px 20px",borderRadius:12,border:"none",background:C.green,color:"white",fontWeight:700,cursor:"pointer"}}>Rates Tab →</button>
-            </div></Card>
-          ):(
-            <>
-              <div style={{fontWeight:700,color:C.navy,marginBottom:8}}>Items chunno:</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-                {ratedItems.map(item=>{
-                  const inB=billItems.find(x=>x.id===item.id);
-                  return (
-                    <div key={item.id} onClick={()=>addToBill(item)}
-                      style={{background:"white",borderRadius:14,padding:"12px",boxShadow:inB?`0 0 0 2.5px ${C.lgreen}`:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",position:"relative",opacity:canUse?1:0.5}}>
-                      {inB && <div style={{position:"absolute",top:8,right:8,background:C.lgreen,color:"white",borderRadius:99,width:20,height:20,fontSize:11,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{inB.qty}</div>}
-                      <div style={{fontSize:28,textAlign:"center"}}>{item.emoji}</div>
-                      <div style={{fontSize:12,fontWeight:700,color:C.navy,textAlign:"center",marginTop:4,lineHeight:1.2}}>{itemName(item, appLang)}</div>
-                      <div style={{fontSize:13,fontWeight:900,color:C.green,textAlign:"center",marginTop:4}}>{inr(rates[item.id])}/{item.unit}</div>
+          {(()=>{
+            const q = billSearch.trim().toLowerCase();
+            const billMatches = q ? ratedItems.filter(i=>i.name.toLowerCase().includes(q) || (i.hi||"").includes(billSearch.trim()) || (i.pa||"").includes(billSearch.trim())) : ratedItems;
+            // An item that already exists in the catalog (any category, rated or not) matching the search — but has no rate yet
+            const unratedMatch = q ? items.find(i=>!rates[i.id] && (i.name.toLowerCase().includes(q) || (i.hi||"").includes(billSearch.trim()) || (i.pa||"").includes(billSearch.trim()))) : null;
+            // Totally unknown item — nothing in the whole catalog matches at all
+            const noMatchAtAll = q && billMatches.length===0 && !unratedMatch;
+            const guess = q ? guessItemEmoji(billSearch) : null;
+            const previewEmoji = quickEmoji || (guess ? guess.emoji : "🧺");
+            return (<>
+              <Card style={{marginBottom:14}}>
+                <input value={billSearch}
+                  onChange={e=>{ setBillSearch(e.target.value); setQuickEmoji(null); setQuickEmojiPick(false); }}
+                  placeholder="🔍 Item dhoondo... nahi mila to turant add karo"
+                  style={{width:"100%",padding:"11px 13px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,boxSizing:"border-box",outline:"none"}}/>
+              </Card>
+
+              {ratedItems.length===0 && !q && (
+                <Card><div style={{textAlign:"center",padding:"20px 0",color:C.gray}}>
+                  <div style={{fontSize:36}}>📋</div>
+                  <div style={{fontWeight:600,marginTop:8}}>Koi item ready nahi hai</div>
+                  <div style={{fontSize:12,marginTop:4}}>Upar search karke naya item turant add karo, ya</div>
+                  <button onClick={()=>setTab("rates")} style={{marginTop:12,padding:"10px 20px",borderRadius:12,border:"none",background:C.green,color:"white",fontWeight:700,cursor:"pointer"}}>Rates Tab →</button>
+                </div></Card>
+              )}
+
+              {billMatches.length>0 && (
+                <>
+                  <div style={{fontWeight:700,color:C.navy,marginBottom:8}}>Items chunno:</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+                    {billMatches.map(item=>{
+                      const inB=billItems.find(x=>x.id===item.id);
+                      return (
+                        <div key={item.id} onClick={()=>addToBill(item)}
+                          style={{background:"white",borderRadius:14,padding:"12px",boxShadow:inB?`0 0 0 2.5px ${C.lgreen}`:"0 1px 8px rgba(0,0,0,0.06)",cursor:"pointer",position:"relative",opacity:canUse?1:0.5}}>
+                          {inB && <div style={{position:"absolute",top:8,right:8,background:C.lgreen,color:"white",borderRadius:99,width:20,height:20,fontSize:11,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{inB.qty}</div>}
+                          <div style={{fontSize:28,textAlign:"center"}}>{item.emoji}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:C.navy,textAlign:"center",marginTop:4,lineHeight:1.2}}>{itemName(item, appLang)}</div>
+                          <div style={{fontSize:13,fontWeight:900,color:C.green,textAlign:"center",marginTop:4}}>{inr(rates[item.id])}/{item.unit}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Item exists in catalog but has no rate set — set it right here and drop into bill */}
+              {unratedMatch && (
+                <Card style={{marginBottom:14,border:`2px dashed ${C.gold}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <span style={{fontSize:28}}>{unratedMatch.emoji}</span>
+                    <div>
+                      <div style={{fontWeight:800,color:C.navy,fontSize:14}}>{itemName(unratedMatch, appLang)}</div>
+                      <div style={{fontSize:11,color:C.gray}}>Rate abhi set nahi hai — daal ke seedha bill mein add karo</div>
                     </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <input type="number" placeholder={`Rate ₹/${unratedMatch.unit}`} value={quickRate} onChange={e=>setQuickRate(e.target.value)}
+                      style={{flex:1,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,outline:"none"}}/>
+                    <button onClick={()=>quickSetRateAndBill(unratedMatch)}
+                      style={{padding:"10px 16px",borderRadius:10,border:"none",background:C.green,color:"white",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap"}}>
+                      🛒 Add
+                    </button>
+                  </div>
+                </Card>
+              )}
+
+              {/* Nothing in the catalog matches at all — create a brand-new item on the fly */}
+              {noMatchAtAll && (
+                <Card style={{marginBottom:14,border:`2px dashed ${C.lgreen}`}}>
+                  <div style={{fontWeight:800,color:C.navy,fontSize:14,marginBottom:2}}>➕ Naya Item: "{billSearch.trim()}"</div>
+                  <div style={{fontSize:11,color:C.gray,marginBottom:10}}>List mein nahi mila — emoji khud-ba-khud chun liya gaya hai, chaho to badal do</div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <button onClick={()=>setQuickEmojiPick(!quickEmojiPick)}
+                      style={{fontSize:28,background:C.lgray,border:"none",borderRadius:10,padding:"6px 12px",cursor:"pointer"}}>{previewEmoji}</button>
+                    <div style={{fontSize:12,color:C.gray}}>Emoji badalne ke liye tap karo</div>
+                  </div>
+                  {quickEmojiPick && (
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10,background:C.lgray,borderRadius:10,padding:10}}>
+                      {EMOJIS.map(e=><button key={e} onClick={()=>{setQuickEmoji(e);setQuickEmojiPick(false);}} style={{fontSize:22,background:previewEmoji===e?"#C8E6C9":"transparent",border:"none",borderRadius:8,padding:4,cursor:"pointer"}}>{e}</button>)}
+                    </div>
+                  )}
+                  <div style={{display:"flex",gap:8}}>
+                    <input type="number" placeholder={`Rate ₹/${guess.unit}`} value={quickRate} onChange={e=>setQuickRate(e.target.value)}
+                      style={{flex:1,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${C.lgray}`,fontSize:14,outline:"none"}}/>
+                    <button onClick={quickAddAndBill}
+                      style={{padding:"10px 16px",borderRadius:10,border:"none",background:C.green,color:"white",fontWeight:800,cursor:"pointer",whiteSpace:"nowrap"}}>
+                      🛒 Add
+                    </button>
+                  </div>
+                </Card>
+              )}
+            </>);
+          })()}
 
           {billItems.length>0 && (
             <Card>
