@@ -293,6 +293,39 @@ async function sbSavePhotoUrl(deviceId, photoUrl) {
   } catch {}
 }
 
+// Delete a vendor from Supabase (admin only)
+async function sbDeleteVendor(deviceId) {
+  try {
+    // Delete from vendor_sessions
+    const r1 = await fetch(`${SB_URL}/rest/v1/vendor_sessions?device_id=eq.${encodeURIComponent(deviceId)}`, {
+      method: "DELETE",
+      headers: { "apikey":SB_KEY, "Authorization":`Bearer ${SB_KEY}`, "Prefer":"return=minimal" }
+    });
+    // Also delete their rates
+    await fetch(`${SB_URL}/rest/v1/vendor_rates?device_id=eq.${encodeURIComponent(deviceId)}`, {
+      method: "DELETE",
+      headers: { "apikey":SB_KEY, "Authorization":`Bearer ${SB_KEY}`, "Prefer":"return=minimal" }
+    });
+    // Also delete their bill events
+    await fetch(`${SB_URL}/rest/v1/bill_events?device_id=eq.${encodeURIComponent(deviceId)}`, {
+      method: "DELETE",
+      headers: { "apikey":SB_KEY, "Authorization":`Bearer ${SB_KEY}`, "Prefer":"return=minimal" }
+    });
+    return r1.ok;
+  } catch { return false; }
+}
+
+// Delete a customer from Supabase (admin only)
+async function sbDeleteCustomer(deviceId) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/customer_sessions?device_id=eq.${encodeURIComponent(deviceId)}`, {
+      method: "DELETE",
+      headers: { "apikey":SB_KEY, "Authorization":`Bearer ${SB_KEY}`, "Prefer":"return=minimal" }
+    });
+    return r.ok;
+  } catch { return false; }
+}
+
 // Sync a single rate to Supabase when vendor sets it
 async function sbSyncRate(deviceId, item, rate) {
   if(!rate || rate<=0) return;
@@ -1192,6 +1225,16 @@ export default function App() {
                         </a>}
                       </div>
                     )}
+                    {/* Delete vendor */}
+                    <button onClick={async(e)=>{
+                      e.stopPropagation();
+                      if(!confirm(`"${v.shop_name||v.device_id}" ko delete karna hai? Yeh Supabase se bhi hat jayega — undo nahi hoga!`)) return;
+                      const ok = await sbDeleteVendor(v.device_id);
+                      if(ok){ setVendorList(p=>p.filter(x=>x.device_id!==v.device_id)); notify("✅ Vendor delete ho gaya"); }
+                      else { notify("❌ Delete fail hua","error"); }
+                    }} style={{marginTop:6,padding:"4px 10px",borderRadius:8,border:`1px solid #DC2626`,background:"#FEF2F2",color:"#DC2626",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                      🗑️ Delete Vendor
+                    </button>
                     </div>
                   </div>
                 );
@@ -1240,6 +1283,16 @@ export default function App() {
                         </a>}
                       </div>
                     )}
+                    {/* Delete customer */}
+                    <button onClick={async(e)=>{
+                      e.stopPropagation();
+                      if(!confirm(`"${c.cust_name||c.device_id}" ko delete karna hai? Supabase se bhi hat jayega!`)) return;
+                      const ok = await sbDeleteCustomer(c.device_id);
+                      if(ok){ setCustomerList(p=>p.filter(x=>x.device_id!==c.device_id)); notify("✅ Customer delete ho gaya"); }
+                      else { notify("❌ Delete fail hua","error"); }
+                    }} style={{marginTop:6,padding:"4px 10px",borderRadius:8,border:`1px solid #DC2626`,background:"#FEF2F2",color:"#DC2626",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                      🗑️ Delete Customer
+                    </button>
                   </div>
                 );
               })}
